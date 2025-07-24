@@ -454,6 +454,36 @@ def monitor(ctx):
     except KeyboardInterrupt:
         console.print("\nMonitoring stopped")
 
+@cli.command()
+@click.pass_context
+def install(ctx):
+    """Install autostartx to system."""
+    import shutil
+    import sys
+    import os
+    
+    # Get the script path
+    script_path = sys.argv[0]
+    
+    # Determine install location
+    if os.access('/usr/local/bin', os.W_OK):
+        install_dir = '/usr/local/bin'
+    elif os.path.expanduser('~/.local/bin'):
+        install_dir = os.path.expanduser('~/.local/bin')
+        os.makedirs(install_dir, exist_ok=True)
+    else:
+        console.print("[red]Error: No writable install directory found[/red]")
+        return
+    
+    install_path = os.path.join(install_dir, 'autostartx')
+    
+    try:
+        shutil.copy2(script_path, install_path)
+        os.chmod(install_path, 0o755)
+        console.print(f"[green]Successfully installed autostartx to {install_path}[/green]")
+    except Exception as e:
+        console.print(f"[red]Installation failed: {e}[/red]")
+
 
 def _get_status_style(status: ServiceStatus) -> str:
     """Get status style."""

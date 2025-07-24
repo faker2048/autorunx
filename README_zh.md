@@ -6,25 +6,32 @@
 
 [中文文档](README_zh.md) | [English](README.md)
 
-## 安装和快速开始
+## 快速开始
 
+**方式1: 使用 uvx 直接运行（推荐）**
 ```bash
-# 从 GitHub 安装
-git clone https://github.com/faker2048/autostartx.git
-cd autostartx
-pip install -e .
-
-# 或者通过 uvx 运行
+# 将长期运行的命令转为服务
 uvx --from git+https://github.com/faker2048/autostartx.git autostartx add "python -m http.server 8000" --name web
+uvx --from git+https://github.com/faker2048/autostartx.git autostartx add "npm run dev" --name frontend
+```
 
-# 添加服务
+**方式2: 安装到系统**
+```bash
+# 一次安装，随处使用
+uvx --from git+https://github.com/faker2048/autostartx.git autostartx install
 autostartx add "python -m http.server 8000" --name web
+autostartx add "tailscale up --ssh" --name vpn
+```
 
-# 查看状态
-autostartx list
+**方式3: 传统安装**
+```bash
+git clone https://github.com/faker2048/autostartx.git && cd autostartx && pip install .
+```
 
-# 查看日志
-autostartx logs web -f
+**查看服务状态**
+```bash
+autostartx list        # 显示所有服务
+autostartx logs web -f # 查看日志
 ```
 
 ## 常用命令
@@ -39,12 +46,12 @@ autostartx daemon --action start  # 启动自动重启守护进程
 
 ## 为什么选择 Autostartx？
 
-- **简单**: 一行命令就能将任何程序变成服务
+- **简单**: 一行命令就能将任何长期运行的程序变成服务
 - **可靠**: 程序崩溃时自动重启
 - **跨平台**: 支持 Windows、Linux、macOS
 - **零配置**: 无需设置文件
 
-适用于开发服务器、后台任务、代理服务等场景。
+适用于开发服务器、后台守护进程、监控工具、代理服务等场景。
 
 ## 许可证
 
