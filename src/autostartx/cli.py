@@ -1,389 +1,409 @@
-"""命令行界面."""
+"""Command Line Interface."""
 
 import os
 import sys
 import time
-from typing import Optional
+
 import click
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-from rich.live import Live
-from rich.panel import Panel
 
-from .service_manager import ServiceManager
-from .models import ServiceStatus
-from .interactive import select_service, confirm_action
-from .daemon import AutostartxDaemon
-from .monitor import AutoRestartManager
 from . import __version__
-
+from .daemon import AutostartxDaemon
+from .interactive import confirm_action, select_service
+from .models import ServiceStatus
+from .monitor import AutoRestartManager
+from .service_manager import ServiceManager
 
 console = Console()
 
 
 @click.group()
 @click.version_option(version=__version__)
-@click.option('--config', help='配置文件路径')
+@click.option("--config", help="Configuration file path")
 @click.pass_context
 def cli(ctx, config):
-    """Autostartx - 命令行程序服务化工具."""
+    """Autostartx - Command-line program service management tool."""
     ctx.ensure_object(dict)
-    ctx.obj['config_path'] = config
+    ctx.obj["config_path"] = config
 
 
 @cli.command()
-@click.argument('command')
-@click.option('--name', help='服务名称')
-@click.option('--no-auto-restart', is_flag=True, help='禁用自动重启')
-@click.option('--working-dir', help='工作目录')
+@click.argument("command")
+@click.option("--name", help="Service name")
+@click.option("--no-auto-restart", is_flag=True, help="Disable auto restart")
+@click.option("--working-dir", help="Working directory")
 @click.pass_context
 def add(ctx, command, name, no_auto_restart, working_dir):
-    """添加新服务."""
-    manager = ServiceManager(ctx.obj.get('config_path'))
-    
-    # 如果没有指定名称，生成一个
+    """Add new service."""
+    manager = ServiceManager(ctx.obj.get("config_path"))
+
+    # If no name specified, generate one
     if not name:
         name = f"service-{int(time.time())}"
-    
+
     auto_restart = not no_auto_restart
     working_dir = working_dir or os.getcwd()
-    
+
     try:
         service = manager.add_service(
             name=name,
             command=command,
             auto_restart=auto_restart,
-            working_dir=working_dir
+            working_dir=working_dir,
         )
-        
-        console.print(f"✅ 服务已添加: {service.name} ({service.id})")
-        console.print(f"命令: {service.command}")
-        console.print(f"自动重启: {'开启' if service.auto_restart else '关闭'}")
-        
-        # 询问是否立即启动
+
+        console.print(f"✅ Service added: {service.name} ({service.id})")
+        console.print(f"Command: {service.command}")
+        console.print(
+            f"Auto restart: {'Enabled' if service.auto_restart else 'Disabled'}"
+        )
+
+        # Ask if start immediately
         try:
-            if click.confirm("是否立即启动服务?", default=True):
+            if click.confirm("Start service now?", default=True):
                 if manager.start_service(service.id):
-                    console.print("🚀 服务已启动")
+                    console.print("🚀 Service started")
                 else:
-                    console.print("❌ 服务启动失败", style="red")
+                    console.print("❌ Service failed to start", style="red")
         except click.Abort:
-            console.print("跳过启动服务")
-                
+            console.print("Skipped starting service")
+
     except ValueError as e:
-        console.print(f"❌ 错误: {e}", style="red")
+        console.print(f"❌ Error: {e}", style="red")
         sys.exit(1)
     except Exception as e:
-        console.print(f"❌ 添加服务失败: {e}", style="red")
+        console.print(f"❌ Failed to add service: {e}", style="red")
         sys.exit(1)
 
 
 @cli.command()
-@click.option('--status', is_flag=True, help='显示详细状态')
+@click.option("--status", is_flag=True, help="Show detailed status")
 @click.pass_context
 def list(ctx, status):
-    """显示服务列表."""
-    manager = ServiceManager(ctx.obj.get('config_path'))
+    """Show service list."""
+    manager = ServiceManager(ctx.obj.get("config_path"))
     services = manager.list_services()
-    
+
     if not services:
-        console.print("没有找到服务")
+        console.print("No services found")
         return
-    
-    table = Table(title="服务列表")
+
+    table = Table(title="Service List")
     table.add_column("ID", style="cyan")
-    table.add_column("名称", style="magenta")
-    table.add_column("状态", justify="center")
-    table.add_column("命令", style="blue")
-    
+    table.add_column("Name", style="magenta")
+    table.add_column("Status", justify="center")
+    table.add_column("Command", style="blue")
+
     if status:
         table.add_column("PID", justify="right")
-        table.add_column("重启次数", justify="right")
-        table.add_column("创建时间", style="dim")
-    
+        table.add_column("Restart Count", justify="right")
+        table.add_column("Created", style="dim")
+
     for service in services:
         status_style = _get_status_style(service.status)
         status_text = Text(service.status.value, style=status_style)
-        
+
         row = [
             service.id[:8],
             service.name,
             status_text,
-            service.command[:50] + "..." if len(service.command) > 50 else service.command,
+            (
+                service.command[:50] + "..."
+                if len(service.command) > 50
+                else service.command
+            ),
         ]
-        
+
         if status:
-            row.extend([
-                str(service.pid) if service.pid else "-",
-                str(service.restart_count),
-                time.strftime("%Y-%m-%d %H:%M", time.localtime(service.created_at)),
-            ])
-        
+            row.extend(
+                [
+                    str(service.pid) if service.pid else "-",
+                    str(service.restart_count),
+                    time.strftime("%Y-%m-%d %H:%M", time.localtime(service.created_at)),
+                ]
+            )
+
         table.add_row(*row)
-    
+
     console.print(table)
 
 
 @cli.command()
-@click.option('--id', help='服务ID')
-@click.option('--name', help='服务名称')
+@click.option("--id", help="Service ID")
+@click.option("--name", help="Service name")
 @click.pass_context
 def status(ctx, id, name):
-    """显示服务状态."""
-    manager = ServiceManager(ctx.obj.get('config_path'))
-    
+    """Show service status."""
+    manager = ServiceManager(ctx.obj.get("config_path"))
+
     service_identifier = id or name
     if not service_identifier:
-        # 交互式选择
+        # Interactive selection
         services = manager.list_services()
-        service = select_service(services, "请选择要查看状态的服务")
+        service = select_service(services, "Please select service to view status")
         if not service:
             return
         service_identifier = service.id
-    
+
     status_info = manager.get_service_status(service_identifier)
     if not status_info:
-        console.print("❌ 服务不存在", style="red")
+        console.print("❌ Service not found", style="red")
         return
-    
-    service = status_info['service']
-    process_info = status_info['process']
-    uptime = status_info['uptime']
-    
-    # 创建状态面板
+
+    service = status_info["service"]
+    process_info = status_info["process"]
+    uptime = status_info["uptime"]
+
+    # Create status panel
     status_text = []
     status_text.append(f"ID: {service.id}")
-    status_text.append(f"名称: {service.name}")
-    status_text.append(f"命令: {service.command}")
-    status_text.append(f"状态: {service.status.value}")
-    status_text.append(f"自动重启: {'开启' if service.auto_restart else '关闭'}")
-    status_text.append(f"重启次数: {service.restart_count}")
-    status_text.append(f"工作目录: {service.working_dir}")
-    
+    status_text.append(f"Name: {service.name}")
+    status_text.append(f"Command: {service.command}")
+    status_text.append(f"Status: {service.status.value}")
+    status_text.append(
+        f"Auto restart: {'Enabled' if service.auto_restart else 'Disabled'}"
+    )
+    status_text.append(f"Restart count: {service.restart_count}")
+    status_text.append(f"Working directory: {service.working_dir}")
+
     if process_info:
-        status_text.append(f"进程ID: {process_info['pid']}")
-        status_text.append(f"CPU使用率: {process_info['cpu_percent']:.1f}%")
-        
-        mem_mb = process_info['memory']['rss'] / 1024 / 1024
-        status_text.append(f"内存使用: {mem_mb:.1f} MB")
-        
+        status_text.append(f"Process ID: {process_info['pid']}")
+        status_text.append(f"CPU usage: {process_info['cpu_percent']:.1f}%")
+
+        mem_mb = process_info["memory"]["rss"] / 1024 / 1024
+        status_text.append(f"Memory usage: {mem_mb:.1f} MB")
+
         if uptime:
             hours, remainder = divmod(int(uptime), 3600)
             minutes, seconds = divmod(remainder, 60)
-            status_text.append(f"运行时间: {hours:02d}:{minutes:02d}:{seconds:02d}")
-    
-    status_text.append(f"创建时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(service.created_at))}")
-    status_text.append(f"更新时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(service.updated_at))}")
-    
+            status_text.append(f"Uptime: {hours:02d}:{minutes:02d}:{seconds:02d}")
+
+    status_text.append(
+        f"Created: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(service.created_at))}"
+    )
+    status_text.append(
+        f"Updated: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(service.updated_at))}"
+    )
+
     panel = Panel(
         "\n".join(status_text),
-        title=f"服务状态 - {service.name}",
-        border_style=_get_status_style(service.status)
+        title=f"Service Status - {service.name}",
+        border_style=_get_status_style(service.status),
     )
     console.print(panel)
 
 
 @cli.command()
-@click.option('--id', help='服务ID')
-@click.option('--name', help='服务名称')
+@click.option("--id", help="Service ID")
+@click.option("--name", help="Service name")
 @click.pass_context
 def start(ctx, id, name):
-    """启动服务."""
-    manager = ServiceManager(ctx.obj.get('config_path'))
-    
+    """Start service."""
+    manager = ServiceManager(ctx.obj.get("config_path"))
+
     service_identifier = id or name
     if not service_identifier:
-        # 交互式选择停止的服务
-        services = [s for s in manager.list_services() if s.status == ServiceStatus.STOPPED]
-        service = select_service(services, "请选择要启动的服务")
+        # Interactive selection of stopped services
+        services = [
+            s for s in manager.list_services() if s.status == ServiceStatus.STOPPED
+        ]
+        service = select_service(services, "Please select service to start")
         if not service:
             return
         service_identifier = service.id
-    
+
     if manager.start_service(service_identifier):
-        console.print("🚀 服务已启动")
+        console.print("🚀 Service started")
     else:
-        console.print("❌ 服务启动失败", style="red")
+        console.print("❌ Service failed to start", style="red")
 
 
 @cli.command()
-@click.option('--id', help='服务ID')
-@click.option('--name', help='服务名称')
-@click.option('--force', is_flag=True, help='强制停止')
+@click.option("--id", help="Service ID")
+@click.option("--name", help="Service name")
+@click.option("--force", is_flag=True, help="Force stop")
 @click.pass_context
 def stop(ctx, id, name, force):
-    """停止服务."""
-    manager = ServiceManager(ctx.obj.get('config_path'))
-    
+    """Stop service."""
+    manager = ServiceManager(ctx.obj.get("config_path"))
+
     service_identifier = id or name
     if not service_identifier:
-        # 交互式选择运行中的服务
-        services = [s for s in manager.list_services() if s.status == ServiceStatus.RUNNING]
-        service = select_service(services, "请选择要停止的服务")
+        # Interactive selection of running services
+        services = [
+            s for s in manager.list_services() if s.status == ServiceStatus.RUNNING
+        ]
+        service = select_service(services, "Please select service to stop")
         if not service:
             return
         service_identifier = service.id
-    
+
     if manager.stop_service(service_identifier, force):
-        console.print("⏹️ 服务已停止")
+        console.print("⏹️ Service stopped")
     else:
-        console.print("❌ 服务停止失败", style="red")
+        console.print("❌ Service failed to stop", style="red")
 
 
 @cli.command()
-@click.option('--id', help='服务ID')
-@click.option('--name', help='服务名称')
-@click.option('--force', is_flag=True, help='强制重启')
+@click.option("--id", help="Service ID")
+@click.option("--name", help="Service name")
+@click.option("--force", is_flag=True, help="Force restart")
 @click.pass_context
 def restart(ctx, id, name, force):
-    """重启服务."""
-    manager = ServiceManager(ctx.obj.get('config_path'))
-    
+    """Restart service."""
+    manager = ServiceManager(ctx.obj.get("config_path"))
+
     service_identifier = id or name
     if not service_identifier:
         services = manager.list_services()
-        service = select_service(services, "请选择要重启的服务")
+        service = select_service(services, "Please select service to restart")
         if not service:
             return
         service_identifier = service.id
-    
+
     if manager.restart_service(service_identifier, force):
-        console.print("🔄 服务已重启")
+        console.print("🔄 Service restarted")
     else:
-        console.print("❌ 服务重启失败", style="red")
+        console.print("❌ Service failed to restart", style="red")
 
 
 @cli.command()
-@click.option('--id', help='服务ID')
-@click.option('--name', help='服务名称')
+@click.option("--id", help="Service ID")
+@click.option("--name", help="Service name")
 @click.pass_context
 def pause(ctx, id, name):
-    """暂停服务."""
-    manager = ServiceManager(ctx.obj.get('config_path'))
-    
+    """Pause service."""
+    manager = ServiceManager(ctx.obj.get("config_path"))
+
     service_identifier = id or name
     if not service_identifier:
-        services = [s for s in manager.list_services() if s.status == ServiceStatus.RUNNING]
-        service = select_service(services, "请选择要暂停的服务")
+        services = [
+            s for s in manager.list_services() if s.status == ServiceStatus.RUNNING
+        ]
+        service = select_service(services, "Please select service to pause")
         if not service:
             return
         service_identifier = service.id
-    
+
     if manager.pause_service(service_identifier):
-        console.print("⏸️ 服务已暂停")
+        console.print("⏸️ Service paused")
     else:
-        console.print("❌ 服务暂停失败", style="red")
+        console.print("❌ Service failed to pause", style="red")
 
 
 @cli.command()
-@click.option('--id', help='服务ID')
-@click.option('--name', help='服务名称') 
+@click.option("--id", help="Service ID")
+@click.option("--name", help="Service name")
 @click.pass_context
 def resume(ctx, id, name):
-    """恢复服务."""
-    manager = ServiceManager(ctx.obj.get('config_path'))
-    
+    """Resume service."""
+    manager = ServiceManager(ctx.obj.get("config_path"))
+
     service_identifier = id or name
     if not service_identifier:
-        services = [s for s in manager.list_services() if s.status == ServiceStatus.PAUSED]
-        service = select_service(services, "请选择要恢复的服务")
+        services = [
+            s for s in manager.list_services() if s.status == ServiceStatus.PAUSED
+        ]
+        service = select_service(services, "Please select service to resume")
         if not service:
             return
         service_identifier = service.id
-    
+
     if manager.resume_service(service_identifier):
-        console.print("▶️ 服务已恢复")
+        console.print("▶️ Service resumed")
     else:
-        console.print("❌ 服务恢复失败", style="red")
+        console.print("❌ Service failed to resume", style="red")
 
 
 @cli.command()
-@click.option('--id', help='服务ID')
-@click.option('--name', help='服务名称')
-@click.option('--force', is_flag=True, help='强制删除')
+@click.option("--id", help="Service ID")
+@click.option("--name", help="Service name")
+@click.option("--force", is_flag=True, help="Force remove")
 @click.pass_context
 def remove(ctx, id, name, force):
-    """删除服务."""
-    manager = ServiceManager(ctx.obj.get('config_path'))
-    
+    """Remove service."""
+    manager = ServiceManager(ctx.obj.get("config_path"))
+
     service_identifier = id or name
     if not service_identifier:
         services = manager.list_services()
-        service = select_service(services, "请选择要删除的服务")
+        service = select_service(services, "Please select service to remove")
         if not service:
             return
         service_identifier = service.name
-    
+
     service = manager.get_service(service_identifier)
     if not service:
-        console.print("❌ 服务不存在", style="red")
+        console.print("❌ Service not found", style="red")
         return
-    
-    # 确认删除
-    if not force and not confirm_action("删除", service.name):
-        console.print("已取消删除")
+
+    # Confirm removal
+    if not force and not confirm_action("remove", service.name):
+        console.print("Removal cancelled")
         return
-    
+
     if manager.remove_service(service_identifier, force):
-        console.print(f"🗑️ 服务 '{service.name}' 已删除")
+        console.print(f"🗑️ Service '{service.name}' removed")
     else:
-        console.print("❌ 删除服务失败", style="red")
+        console.print("❌ Failed to remove service", style="red")
 
 
 @cli.command()
-@click.option('--id', help='服务ID')
-@click.option('--name', help='服务名称')
-@click.option('--follow', '-f', is_flag=True, help='实时跟踪日志')
-@click.option('--tail', default=100, help='显示最后N行日志')
-@click.option('--clear', is_flag=True, help='清空日志')
+@click.option("--id", help="Service ID")
+@click.option("--name", help="Service name")
+@click.option("--follow", "-f", is_flag=True, help="Follow log output")
+@click.option("--tail", default=100, help="Show last N lines of log")
+@click.option("--clear", is_flag=True, help="Clear logs")
 @click.pass_context
 def logs(ctx, id, name, follow, tail, clear):
-    """查看服务日志."""
-    manager = ServiceManager(ctx.obj.get('config_path'))
-    
+    """View service logs."""
+    manager = ServiceManager(ctx.obj.get("config_path"))
+
     service_identifier = id or name
     if not service_identifier:
         services = manager.list_services()
-        service = select_service(services, "请选择要查看日志的服务")
+        service = select_service(services, "Please select service to view logs")
         if not service:
             return
         service_identifier = service.id
-    
+
     service = manager.get_service(service_identifier)
     if not service:
-        console.print("❌ 服务不存在", style="red")
+        console.print("❌ Service not found", style="red")
         return
-    
+
     if clear:
         if manager.clear_service_logs(service_identifier):
-            console.print("🧹 日志已清空")
+            console.print("🧹 Logs cleared")
         else:
-            console.print("❌ 清空日志失败", style="red")
+            console.print("❌ Failed to clear logs", style="red")
         return
-    
+
     log_lines = manager.get_service_logs(service_identifier, tail)
     if log_lines is None:
-        console.print("❌ 无法读取日志", style="red")
+        console.print("❌ Unable to read logs", style="red")
         return
-    
+
     if not log_lines:
-        console.print("📝 暂无日志")
+        console.print("📝 No logs available")
         return
-    
-    # 显示历史日志
+
+    # Display historical logs
     for line in log_lines:
         console.print(line.rstrip())
-    
-    # 实时跟踪模式
+
+    # Real-time follow mode
     if follow:
-        console.print("\n--- 实时日志 (Ctrl+C 退出) ---")
+        console.print("\n--- Live logs (Ctrl+C to exit) ---")
         try:
             log_path = manager.config_manager.get_service_log_path(service.id)
-            with open(log_path, 'r', encoding='utf-8') as f:
-                # 移动到文件末尾
+            with open(log_path, encoding="utf-8") as f:
+                # Move to end of file
                 f.seek(0, 2)
-                
+
                 while True:
                     line = f.readline()
                     if line:
@@ -391,48 +411,52 @@ def logs(ctx, id, name, follow, tail, clear):
                     else:
                         time.sleep(0.1)
         except KeyboardInterrupt:
-            console.print("\n已停止日志跟踪")
+            console.print("\nLog following stopped")
         except Exception as e:
-            console.print(f"❌ 日志跟踪失败: {e}", style="red")
+            console.print(f"❌ Log following failed: {e}", style="red")
 
 
 @cli.command()
-@click.option('--action', type=click.Choice(['start', 'stop', 'restart', 'status']), 
-              default='status', help='守护进程操作')
+@click.option(
+    "--action",
+    type=click.Choice(["start", "stop", "restart", "status"]),
+    default="status",
+    help="Daemon operation",
+)
 @click.pass_context
 def daemon(ctx, action):
-    """管理 autostartx 守护进程."""
-    daemon = AutostartxDaemon(ctx.obj.get('config_path'))
-    
-    if action == 'start':
-        console.print("🚀 启动 autostartx 守护进程...")
+    """Manage autostartx daemon."""
+    daemon = AutostartxDaemon(ctx.obj.get("config_path"))
+
+    if action == "start":
+        console.print("🚀 Starting autostartx daemon...")
         daemon.start()
-    elif action == 'stop':
-        console.print("🛑 停止 autostartx 守护进程...")
+    elif action == "stop":
+        console.print("🛑 Stopping autostartx daemon...")
         daemon.stop()
-    elif action == 'restart':
-        console.print("🔄 重启 autostartx 守护进程...")
+    elif action == "restart":
+        console.print("🔄 Restarting autostartx daemon...")
         daemon.restart()
-    elif action == 'status':
+    elif action == "status":
         daemon.status()
 
 
 @cli.command()
 @click.pass_context
 def monitor(ctx):
-    """启动监控模式（前台运行）."""
-    console.print("🔍 启动 Autostartx 监控模式...")
-    console.print("按 Ctrl+C 停止监控")
-    
+    """Start monitoring mode (foreground)."""
+    console.print("🔍 Starting Autostartx monitoring mode...")
+    console.print("Press Ctrl+C to stop monitoring")
+
     try:
-        manager = AutoRestartManager(ctx.obj.get('config_path'))
+        manager = AutoRestartManager(ctx.obj.get("config_path"))
         manager.start()
     except KeyboardInterrupt:
-        console.print("\n监控已停止")
+        console.print("\nMonitoring stopped")
 
 
 def _get_status_style(status: ServiceStatus) -> str:
-    """获取状态样式."""
+    """Get status style."""
     styles = {
         ServiceStatus.RUNNING: "green",
         ServiceStatus.STOPPED: "red",
@@ -444,16 +468,16 @@ def _get_status_style(status: ServiceStatus) -> str:
 
 
 def main():
-    """主入口函数."""
+    """Main entry function."""
     try:
         cli()
     except KeyboardInterrupt:
-        console.print("\n已取消操作")
+        console.print("\nOperation cancelled")
         sys.exit(0)
     except Exception as e:
-        console.print(f"❌ 发生错误: {e}", style="red")
+        console.print(f"❌ Error occurred: {e}", style="red")
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

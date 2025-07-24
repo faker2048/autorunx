@@ -1,171 +1,173 @@
-"""守护进程模块."""
+"""Daemon process module."""
 
-import os
-import sys
-import signal
 import atexit
+import os
+import signal
+import sys
 from pathlib import Path
+
 from .monitor import AutoRestartManager
 
 
 class Daemon:
-    """守护进程基类."""
-    
+    """Daemon process base class."""
+
     def __init__(self, pidfile: str):
         self.pidfile = pidfile
-    
+
     def daemonize(self) -> None:
-        """守护进程化."""
+        """Daemonize process."""
         try:
-            # 第一次fork
+            # First fork
             pid = os.fork()
             if pid > 0:
-                sys.exit(0)  # 父进程退出
+                sys.exit(0)  # Parent process exits
         except OSError as e:
             sys.stderr.write(f"fork #1 failed: {e}\n")
             sys.exit(1)
-        
-        # 脱离父进程环境
+
+        # Detach from parent process environment
         os.chdir("/")
         os.setsid()
         os.umask(0)
-        
+
         try:
-            # 第二次fork
+            # Second fork
             pid = os.fork()
             if pid > 0:
-                sys.exit(0)  # 第一个子进程退出
+                sys.exit(0)  # First child process exits
         except OSError as e:
             sys.stderr.write(f"fork #2 failed: {e}\n")
             sys.exit(1)
-        
-        # 重定向标准文件描述符
+
+        # Redirect standard file descriptors
         sys.stdout.flush()
         sys.stderr.flush()
-        
-        si = open(os.devnull, 'r')
-        so = open(os.devnull, 'a+')
-        se = open(os.devnull, 'a+')
-        
+
+        si = open(os.devnull)
+        so = open(os.devnull, "a+")
+        se = open(os.devnull, "a+")
+
         os.dup2(si.fileno(), sys.stdin.fileno())
         os.dup2(so.fileno(), sys.stdout.fileno())
         os.dup2(se.fileno(), sys.stderr.fileno())
-        
-        # 写入pid文件
+
+        # Write pid file
         atexit.register(self.delpid)
-        
+
         pid = str(os.getpid())
-        with open(self.pidfile, 'w+') as f:
+        with open(self.pidfile, "w+") as f:
             f.write(f"{pid}\n")
-    
+
     def delpid(self) -> None:
-        """删除pid文件."""
+        """Delete pid file."""
         try:
             os.remove(self.pidfile)
         except OSError:
             pass
-    
+
     def start(self) -> None:
-        """启动守护进程."""
-        # 检查pid文件是否存在
+        """Start daemon process."""
+        # Check if pid file exists
         try:
-            with open(self.pidfile, 'r') as pf:
+            with open(self.pidfile) as pf:
                 pid = int(pf.read().strip())
-        except (IOError, ValueError):
+        except (OSError, ValueError):
             pid = None
-        
+
         if pid:
-            # 检查进程是否还在运行
+            # Check if process is still running
             try:
-                os.kill(pid, 0)  # 发送信号0检查进程是否存在
-                print(f"守护进程已在运行，PID: {pid}")
+                os.kill(pid, 0)  # Send signal 0 to check if process exists
+                print(f"Daemon already running, PID: {pid}")
                 sys.exit(1)
             except OSError:
-                # 进程不存在，删除旧的pid文件
+                # Process doesn't exist, delete old pid file
                 self.delpid()
-        
-        # 启动守护进程
+
+        # Start daemon process
         self.daemonize()
         self.run()
-    
+
     def stop(self) -> None:
-        """停止守护进程."""
+        """Stop daemon process."""
         try:
-            with open(self.pidfile, 'r') as pf:
+            with open(self.pidfile) as pf:
                 pid = int(pf.read().strip())
-        except (IOError, ValueError):
+        except (OSError, ValueError):
             pid = None
-        
+
         if not pid:
-            print("守护进程未运行")
+            print("Daemon not running")
             return
-        
-        # 尝试终止进程
+
+        # Try to terminate process
         try:
             while True:
                 os.kill(pid, signal.SIGTERM)
                 import time
+
                 time.sleep(0.1)
         except OSError as err:
             if "No such process" in str(err):
                 self.delpid()
-                print("守护进程已停止")
+                print("Daemon stopped")
             else:
-                print(f"停止守护进程失败: {err}")
+                print(f"Failed to stop daemon: {err}")
                 sys.exit(1)
-    
+
     def restart(self) -> None:
-        """重启守护进程."""
+        """Restart daemon process."""
         self.stop()
         self.start()
-    
+
     def status(self) -> None:
-        """查看守护进程状态."""
+        """Check daemon process status."""
         try:
-            with open(self.pidfile, 'r') as pf:
+            with open(self.pidfile) as pf:
                 pid = int(pf.read().strip())
-        except (IOError, ValueError):
-            print("守护进程未运行")
+        except (OSError, ValueError):
+            print("Daemon not running")
             return
-        
+
         try:
             os.kill(pid, 0)
-            print(f"守护进程正在运行，PID: {pid}")
+            print(f"Daemon is running, PID: {pid}")
         except OSError:
-            print("守护进程未运行（pid文件存在但进程不存在）")
+            print("Daemon not running (pid file exists but process doesn't exist)")
             self.delpid()
-    
+
     def run(self) -> None:
-        """运行守护进程 - 子类需要重写此方法."""
+        """Run daemon process - subclasses need to override this method."""
         raise NotImplementedError
 
 
 class AutostartxDaemon(Daemon):
-    """Autostartx 守护进程."""
-    
+    """Autostartx daemon process."""
+
     def __init__(self, config_path: str = None):
-        # 设置pid文件路径
+        # Set pid file path
         config_dir = Path.home() / ".config" / "autostartx"
         config_dir.mkdir(parents=True, exist_ok=True)
         pidfile = str(config_dir / "autostartx.pid")
-        
+
         super().__init__(pidfile)
         self.config_path = config_path
         self.manager = None
-    
+
     def run(self) -> None:
-        """运行自动重启管理器."""
+        """Run auto-restart manager."""
         self.manager = AutoRestartManager(self.config_path)
-        
-        # 设置信号处理
+
+        # Set signal handlers
         signal.signal(signal.SIGTERM, self._signal_handler)
         signal.signal(signal.SIGINT, self._signal_handler)
-        
-        # 启动管理器
+
+        # Start manager
         self.manager.start()
-    
+
     def _signal_handler(self, signum, frame) -> None:
-        """信号处理器."""
+        """Signal handler."""
         if self.manager:
             self.manager.stop()
         sys.exit(0)

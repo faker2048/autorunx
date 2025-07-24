@@ -1,67 +1,79 @@
-"""交互式选择器."""
+"""Interactive selectors."""
 
 from typing import List, Optional
+
 from .models import ServiceInfo
 
 
-def select_service(services: List[ServiceInfo], prompt: str = "请选择服务") -> Optional[ServiceInfo]:
-    """交互式选择服务."""
+def select_service(
+    services: List[ServiceInfo], prompt: str = "Please select service"
+) -> Optional[ServiceInfo]:
+    """Interactive service selection."""
     if not services:
-        print("没有可用的服务")
+        print("No services available")
         return None
-    
+
     if len(services) == 1:
         return services[0]
-    
+
     print(f"\n{prompt}:")
     print("-" * 50)
-    
+
     for i, service in enumerate(services, 1):
         status_color = _get_status_color(service.status.value)
-        print(f"{i:2d}. {service.name:<20} [{status_color}{service.status.value}{_get_reset_color()}] {service.id}")
-    
+        print(
+            f"{i:2d}. {service.name:<20} "
+            f"[{status_color}{service.status.value}{_get_reset_color()}] {service.id}"
+        )
+
     print("-" * 50)
-    
+
     while True:
         try:
-            choice = input("请输入序号 (1-{}, q退出): ".format(len(services))).strip()
-            
-            if choice.lower() == 'q':
+            choice = input(
+                f"Please enter number (1-{len(services)}, q to quit): "
+            ).strip()
+
+            if choice.lower() == "q":
                 return None
-            
+
             index = int(choice) - 1
             if 0 <= index < len(services):
                 return services[index]
             else:
-                print(f"请输入有效的序号 (1-{len(services)})")
-        
+                print(f"Please enter valid number (1-{len(services)})")
+
         except (ValueError, KeyboardInterrupt):
-            print("\n已取消操作")
+            print("\nOperation cancelled")
             return None
 
 
 def confirm_action(action: str, target: str) -> bool:
-    """确认操作."""
+    """Confirm action."""
     try:
-        response = input(f"确定要{action} '{target}' 吗? (y/N): ").strip().lower()
-        return response in ['y', 'yes', '是']
+        response = (
+            input(f"Are you sure you want to {action} '{target}'? (y/N): ")
+            .strip()
+            .lower()
+        )
+        return response in ["y", "yes"]
     except KeyboardInterrupt:
-        print("\n已取消操作")
+        print("\nOperation cancelled")
         return False
 
 
 def _get_status_color(status: str) -> str:
-    """获取状态颜色代码."""
+    """Get status color code."""
     colors = {
-        "running": "\033[32m",    # 绿色
-        "stopped": "\033[31m",    # 红色  
-        "paused": "\033[33m",     # 黄色
-        "failed": "\033[91m",     # 亮红色
-        "starting": "\033[36m",   # 青色
+        "running": "\033[32m",  # Green
+        "stopped": "\033[31m",  # Red
+        "paused": "\033[33m",  # Yellow
+        "failed": "\033[91m",  # Bright red
+        "starting": "\033[36m",  # Cyan
     }
     return colors.get(status, "")
 
 
 def _get_reset_color() -> str:
-    """获取颜色重置代码."""
+    """Get color reset code."""
     return "\033[0m"

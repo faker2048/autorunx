@@ -1,9 +1,9 @@
 """pytest配置文件。"""
 
-import pytest
-import tempfile
 import shutil
-from pathlib import Path
+import tempfile
+
+import pytest
 
 
 @pytest.fixture(scope="session", autouse=True)
