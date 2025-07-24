@@ -12,7 +12,7 @@ Transform any command-line program into an auto-restarting background service wi
 # Install from GitHub
 git clone https://github.com/faker2048/autostartx.git
 cd autostartx
-pip install -e .
+pip install .
 
 # Or install directly with uvx
 uvx --from git+https://github.com/faker2048/autostartx.git autostartx add "python -m http.server 8000" --name web
