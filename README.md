@@ -8,24 +8,33 @@ Transform any command-line program into an auto-restarting background service wi
 
 ## Quick Start
 
-**Option 1: One-time use with uvx**
-```bash
-# Turn long-running commands into services
-uvx --from git+https://github.com/faker2048/autostartx.git autostartx add "python -m http.server 8000" --name web
-uvx --from git+https://github.com/faker2048/autostartx.git autostartx add "npm run dev" --name frontend
-```
+**Option 1: One-time use with uvx**  
 
-**Option 2: Install to system**
-```bash
-# Install once, use anywhere
-uvx --from git+https://github.com/faker2048/autostartx.git autostartx install
-autostartx add "python -m http.server 8000" --name web
-autostartx add "tailscale up --ssh" --name vpn
-```
+Turn long-running commands into services  
+
+`
+uvx autostartx add "python -m http.server 8000" --name web
+`
+
+**Option 2: Install to system**  
+
+Install once, use anywhere  
+
+`pip install autostartx`
+
+or
+
+`uvx autostartx install`
 
 **Option 3: Traditional install**
 ```bash
 git clone https://github.com/faker2048/autostartx.git && cd autostartx && pip install .
+```
+
+**Basic Usage**
+```bash
+autostartx add "python -m http.server 8000" --name web
+autostartx add "tailscale up --ssh" --name vpn
 ```
 
 **Check your services**

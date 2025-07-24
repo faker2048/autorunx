@@ -9,29 +9,38 @@
 ## 快速开始
 
 **方式1: 使用 uvx 直接运行（推荐）**
-```bash
-# 将长期运行的命令转为服务
-uvx --from git+https://github.com/faker2048/autostartx.git autostartx add "python -m http.server 8000" --name web
-uvx --from git+https://github.com/faker2048/autostartx.git autostartx add "npm run dev" --name frontend
+
+将长期运行的命令转为服务
+
+```
+uvx autostartx add "python -m http.server 8000" --name web
 ```
 
 **方式2: 安装到系统**
+
+一次安装，随处使用
+
+```pip install autostartx```
+
+或
+
+```uvx autostartx install```
+
+**基本用法**
 ```bash
-# 一次安装，随处使用
-uvx --from git+https://github.com/faker2048/autostartx.git autostartx install
 autostartx add "python -m http.server 8000" --name web
 autostartx add "tailscale up --ssh" --name vpn
-```
-
-**方式3: 传统安装**
-```bash
-git clone https://github.com/faker2048/autostartx.git && cd autostartx && pip install .
 ```
 
 **查看服务状态**
 ```bash
 autostartx list        # 显示所有服务
 autostartx logs web -f # 查看日志
+```
+
+**方式3: 传统安装**
+```bash
+git clone https://github.com/faker2048/autostartx.git && cd autostartx && pip install .
 ```
 
 ## 常用命令
