@@ -27,16 +27,12 @@ class Config:
     color_output: bool = True
 
     # Path configuration
-    config_dir: str = field(
-        default_factory=lambda: str(Path.home() / ".config" / "autostartx")
-    )
+    config_dir: str = field(default_factory=lambda: str(Path.home() / ".config" / "autostartx"))
     data_dir: str = field(
         default_factory=lambda: str(Path.home() / ".local" / "share" / "autostartx")
     )
     log_dir: str = field(
-        default_factory=lambda: str(
-            Path.home() / ".local" / "share" / "autostartx" / "logs"
-        )
+        default_factory=lambda: str(Path.home() / ".local" / "share" / "autostartx" / "logs")
     )
 
 
@@ -45,9 +41,7 @@ class ConfigManager:
 
     def __init__(self, config_path: Optional[str] = None):
         self.config = Config()
-        self.config_path = config_path or os.path.join(
-            self.config.config_dir, "config.toml"
-        )
+        self.config_path = config_path or os.path.join(self.config.config_dir, "config.toml")
         self._ensure_directories()
         self.load_config()
 
@@ -76,21 +70,15 @@ class ConfigManager:
             if "general" in config_data:
                 general = config_data["general"]
                 self.config.log_level = general.get("log_level", self.config.log_level)
-                self.config.max_log_size = general.get(
-                    "max_log_size", self.config.max_log_size
-                )
+                self.config.max_log_size = general.get("max_log_size", self.config.max_log_size)
                 self.config.log_retention_days = general.get(
                     "log_retention_days", self.config.log_retention_days
                 )
 
             if "services" in config_data:
                 services = config_data["services"]
-                self.config.auto_restart = services.get(
-                    "auto_restart", self.config.auto_restart
-                )
-                self.config.restart_delay = services.get(
-                    "restart_delay", self.config.restart_delay
-                )
+                self.config.auto_restart = services.get("auto_restart", self.config.auto_restart)
+                self.config.restart_delay = services.get("restart_delay", self.config.restart_delay)
                 self.config.max_restart_attempts = services.get(
                     "max_restart_attempts", self.config.max_restart_attempts
                 )
@@ -100,9 +88,7 @@ class ConfigManager:
                 self.config.interactive_mode = ui.get(
                     "interactive_mode", self.config.interactive_mode
                 )
-                self.config.color_output = ui.get(
-                    "color_output", self.config.color_output
-                )
+                self.config.color_output = ui.get("color_output", self.config.color_output)
 
         except Exception as e:
             print(f"Warning: Failed to load config file: {e}")

@@ -55,9 +55,7 @@ class ServiceMonitor:
 
             # Check process status
             if service.status == ServiceStatus.RUNNING and service.pid:
-                if not self.service_manager.process_manager.is_process_running(
-                    service.pid
-                ):
+                if not self.service_manager.process_manager.is_process_running(service.pid):
                     # Process unexpectedly exited, needs restart
                     self._handle_service_crash(service)
 
@@ -95,9 +93,7 @@ class ServiceMonitor:
             time.sleep(service.restart_delay)
 
         # Attempt restart
-        print(
-            f"🔄 Restarting service {service.name} (attempt {service.restart_count + 1})"
-        )
+        print(f"🔄 Restarting service {service.name} (attempt {service.restart_count + 1})")
 
         service.update_status(ServiceStatus.STARTING)
         self.service_manager.storage.update_service(service)
@@ -158,12 +154,8 @@ class AutoRestartManager:
         status_info = {
             "monitoring": self.monitor._monitoring,
             "total_services": len(services),
-            "running_services": len(
-                [s for s in services if s.status == ServiceStatus.RUNNING]
-            ),
-            "failed_services": len(
-                [s for s in services if s.status == ServiceStatus.FAILED]
-            ),
+            "running_services": len([s for s in services if s.status == ServiceStatus.RUNNING]),
+            "failed_services": len([s for s in services if s.status == ServiceStatus.FAILED]),
             "auto_restart_enabled": len([s for s in services if s.auto_restart]),
         }
 
@@ -184,17 +176,14 @@ class AutoRestartManager:
                 "status": service.status.value,
                 "auto_restart": service.auto_restart,
                 "restart_count": service.restart_count,
-                "healthy": service.status == ServiceStatus.RUNNING
-                and process_info is not None,
+                "healthy": service.status == ServiceStatus.RUNNING and process_info is not None,
             }
 
             if process_info:
                 health.update(
                     {
                         "cpu_percent": process_info.get("cpu_percent", 0),
-                        "memory_mb": process_info.get("memory", {}).get("rss", 0)
-                        / 1024
-                        / 1024,
+                        "memory_mb": process_info.get("memory", {}).get("rss", 0) / 1024 / 1024,
                     }
                 )
 

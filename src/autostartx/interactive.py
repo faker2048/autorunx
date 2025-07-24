@@ -30,9 +30,7 @@ def select_service(
 
     while True:
         try:
-            choice = input(
-                f"Please enter number (1-{len(services)}, q to quit): "
-            ).strip()
+            choice = input(f"Please enter number (1-{len(services)}, q to quit): ").strip()
 
             if choice.lower() == "q":
                 return None
@@ -51,11 +49,7 @@ def select_service(
 def confirm_action(action: str, target: str) -> bool:
     """Confirm action."""
     try:
-        response = (
-            input(f"Are you sure you want to {action} '{target}'? (y/N): ")
-            .strip()
-            .lower()
-        )
+        response = input(f"Are you sure you want to {action} '{target}'? (y/N): ").strip().lower()
         return response in ["y", "yes"]
     except KeyboardInterrupt:
         print("\nOperation cancelled")

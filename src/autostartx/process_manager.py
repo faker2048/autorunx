@@ -111,9 +111,7 @@ class ProcessManager:
             # Start process
             with open(log_path, "a", encoding="utf-8") as log_file:
                 # Write startup log
-                log_file.write(
-                    f"\n=== Service started: {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n"
-                )
+                log_file.write(f"\n=== Service started: {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n")
                 log_file.flush()
 
                 # Parse command

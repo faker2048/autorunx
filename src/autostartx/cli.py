@@ -57,9 +57,7 @@ def add(ctx, command, name, no_auto_restart, working_dir):
 
         console.print(f"✅ Service added: {service.name} ({service.id})")
         console.print(f"Command: {service.command}")
-        console.print(
-            f"Auto restart: {'Enabled' if service.auto_restart else 'Disabled'}"
-        )
+        console.print(f"Auto restart: {'Enabled' if service.auto_restart else 'Disabled'}")
 
         # Ask if start immediately
         try:
@@ -110,11 +108,7 @@ def list(ctx, status):
             service.id[:8],
             service.name,
             status_text,
-            (
-                service.command[:50] + "..."
-                if len(service.command) > 50
-                else service.command
-            ),
+            (service.command[:50] + "..." if len(service.command) > 50 else service.command),
         ]
 
         if status:
@@ -163,9 +157,7 @@ def status(ctx, id, name):
     status_text.append(f"Name: {service.name}")
     status_text.append(f"Command: {service.command}")
     status_text.append(f"Status: {service.status.value}")
-    status_text.append(
-        f"Auto restart: {'Enabled' if service.auto_restart else 'Disabled'}"
-    )
+    status_text.append(f"Auto restart: {'Enabled' if service.auto_restart else 'Disabled'}")
     status_text.append(f"Restart count: {service.restart_count}")
     status_text.append(f"Working directory: {service.working_dir}")
 
@@ -207,9 +199,7 @@ def start(ctx, id, name):
     service_identifier = id or name
     if not service_identifier:
         # Interactive selection of stopped services
-        services = [
-            s for s in manager.list_services() if s.status == ServiceStatus.STOPPED
-        ]
+        services = [s for s in manager.list_services() if s.status == ServiceStatus.STOPPED]
         service = select_service(services, "Please select service to start")
         if not service:
             return
@@ -233,9 +223,7 @@ def stop(ctx, id, name, force):
     service_identifier = id or name
     if not service_identifier:
         # Interactive selection of running services
-        services = [
-            s for s in manager.list_services() if s.status == ServiceStatus.RUNNING
-        ]
+        services = [s for s in manager.list_services() if s.status == ServiceStatus.RUNNING]
         service = select_service(services, "Please select service to stop")
         if not service:
             return
@@ -280,9 +268,7 @@ def pause(ctx, id, name):
 
     service_identifier = id or name
     if not service_identifier:
-        services = [
-            s for s in manager.list_services() if s.status == ServiceStatus.RUNNING
-        ]
+        services = [s for s in manager.list_services() if s.status == ServiceStatus.RUNNING]
         service = select_service(services, "Please select service to pause")
         if not service:
             return
@@ -304,9 +290,7 @@ def resume(ctx, id, name):
 
     service_identifier = id or name
     if not service_identifier:
-        services = [
-            s for s in manager.list_services() if s.status == ServiceStatus.PAUSED
-        ]
+        services = [s for s in manager.list_services() if s.status == ServiceStatus.PAUSED]
         service = select_service(services, "Please select service to resume")
         if not service:
             return
@@ -454,6 +438,7 @@ def monitor(ctx):
     except KeyboardInterrupt:
         console.print("\nMonitoring stopped")
 
+
 @cli.command()
 @click.pass_context
 def install(ctx):
@@ -461,22 +446,22 @@ def install(ctx):
     import shutil
     import sys
     import os
-    
+
     # Get the script path
     script_path = sys.argv[0]
-    
+
     # Determine install location
-    if os.access('/usr/local/bin', os.W_OK):
-        install_dir = '/usr/local/bin'
-    elif os.path.expanduser('~/.local/bin'):
-        install_dir = os.path.expanduser('~/.local/bin')
+    if os.access("/usr/local/bin", os.W_OK):
+        install_dir = "/usr/local/bin"
+    elif os.path.expanduser("~/.local/bin"):
+        install_dir = os.path.expanduser("~/.local/bin")
         os.makedirs(install_dir, exist_ok=True)
     else:
         console.print("[red]Error: No writable install directory found[/red]")
         return
-    
-    install_path = os.path.join(install_dir, 'autostartx')
-    
+
+    install_path = os.path.join(install_dir, "autostartx")
+
     try:
         shutil.copy2(script_path, install_path)
         os.chmod(install_path, 0o755)

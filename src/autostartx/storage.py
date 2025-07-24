@@ -129,9 +129,7 @@ class ServiceStorage:
 
     def get_services_by_status(self, status: ServiceStatus) -> List[ServiceInfo]:
         """Get service list by status."""
-        return [
-            service for service in self._services.values() if service.status == status
-        ]
+        return [service for service in self._services.values() if service.status == status]
 
     def _generate_service_id(self) -> str:
         """Generate unique service ID."""

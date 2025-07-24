@@ -139,9 +139,7 @@ class ServiceManager:
 
         return status_info
 
-    def get_service_logs(
-        self, service_id_or_name: str, lines: int = 100
-    ) -> Optional[List[str]]:
+    def get_service_logs(self, service_id_or_name: str, lines: int = 100) -> Optional[List[str]]:
         """Get service logs."""
         service = self.storage.find_service(service_id_or_name)
         if not service:

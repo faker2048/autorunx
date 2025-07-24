@@ -40,9 +40,7 @@ class LogManager:
         # Console handler
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
-        console_handler.setLevel(
-            logging.WARNING
-        )  # Only show warnings and errors on console
+        console_handler.setLevel(logging.WARNING)  # Only show warnings and errors on console
 
         # Configure root logger
         root_logger = logging.getLogger("autostartx")
@@ -93,9 +91,7 @@ class LogManager:
         try:
             with open(log_path, "w", encoding="utf-8") as f:
                 f.write("")
-            logging.getLogger("autostartx").info(
-                f"Cleared logs for service {service_id}"
-            )
+            logging.getLogger("autostartx").info(f"Cleared logs for service {service_id}")
             return True
         except Exception as e:
             logging.getLogger("autostartx").error(f"Failed to clear service logs: {e}")
@@ -130,9 +126,7 @@ class LogManager:
             with open(log_path, "w", encoding="utf-8") as f:
                 f.write(f"=== Log rotation: {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n")
 
-            logging.getLogger("autostartx").info(
-                f"Rotated logs for service {service_id}"
-            )
+            logging.getLogger("autostartx").info(f"Rotated logs for service {service_id}")
             return True
 
         except Exception as e:
@@ -152,9 +146,7 @@ class LogManager:
             for log_file in log_dir.glob("*.log.*"):
                 if log_file.stat().st_mtime < cutoff_time:
                     log_file.unlink()
-                    logging.getLogger("autostartx").info(
-                        f"Deleted expired log: {log_file}"
-                    )
+                    logging.getLogger("autostartx").info(f"Deleted expired log: {log_file}")
 
             # Clean up compressed logs
             for gz_file in log_dir.glob("*.gz"):
@@ -165,9 +157,7 @@ class LogManager:
                     )
 
         except Exception as e:
-            logging.getLogger("autostartx").error(
-                f"Failed to clean up expired logs: {e}"
-            )
+            logging.getLogger("autostartx").error(f"Failed to clean up expired logs: {e}")
 
     def get_log_stats(self, service_id: str) -> Dict[str, Any]:
         """Get log statistics."""
@@ -252,9 +242,7 @@ class ServiceLogRotator:
         if not stats.get("exists"):
             return True
 
-        max_size = self.log_manager._parse_size(
-            self.log_manager.config_manager.config.max_log_size
-        )
+        max_size = self.log_manager._parse_size(self.log_manager.config_manager.config.max_log_size)
 
         if stats["size"] >= max_size:
             return self.log_manager.rotate_service_logs(service_id)

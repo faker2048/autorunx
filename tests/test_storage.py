@@ -24,9 +24,7 @@ def storage():
 
 def test_add_service(storage):
     """测试添加服务。"""
-    service = storage.add_service(
-        name="test-service", command="echo hello", auto_restart=True
-    )
+    service = storage.add_service(name="test-service", command="echo hello", auto_restart=True)
 
     assert service.name == "test-service"
     assert service.command == "echo hello"
