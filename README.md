@@ -11,12 +11,21 @@ Transform any command-line program into an auto-restarting background service wi
 ### Installation
 
 ```bash
-# Run directly with uvx (no installation needed)
-uvx autorunx add "python -m http.server 8000" --name my-web
+# Run directly with uvx from GitHub (recommended)
+uvx --from git+https://github.com/faker2048/autorunx autorunx add "python -m http.server 8000" --name my-web
 
-# Or install with pip
-pip install autorunx
+# Or install from GitHub with pip
+pip install git+https://github.com/faker2048/autorunx.git
+
+# Or clone and install locally
+git clone https://github.com/faker2048/autorunx.git
+cd autorunx
+pip install -e .
 ```
+
+> **Note**: AutoRunX is not yet published to PyPI. Use the GitHub installation methods above.
+> 
+> 📋 **For detailed installation instructions and troubleshooting, see [INSTALL.md](INSTALL.md)**
 
 ### Basic Usage
 

@@ -9,10 +9,23 @@
 ## 快速上手
 
 ### 安装
+
 ```bash
-# 通过uvx运行, 添加一个Web服务就这么简单
-uvx autorunx add "python -m http.server 8000" --name my-web
+# 通过 uvx 从 GitHub 直接运行（推荐）
+uvx --from git+https://github.com/faker2048/autorunx autorunx add "python -m http.server 8000" --name my-web
+
+# 或者用 pip 从 GitHub 安装
+pip install git+https://github.com/faker2048/autorunx.git
+
+# 或者克隆到本地安装
+git clone https://github.com/faker2048/autorunx.git
+cd autorunx
+pip install -e .
 ```
+
+> **注意**: AutoRunX 还未发布到 PyPI，请使用上述 GitHub 安装方式。
+> 
+> 📋 **详细安装说明和故障排除请查看 [INSTALL_zh.md](INSTALL_zh.md)**
 
 ### 基本使用
 ```bash

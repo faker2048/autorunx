@@ -6,12 +6,42 @@
 
 ### Installation
 
-```bash
-# Run directly with uvx (no installation needed)
-uvx autorunx add "python -m http.server 8000" --name my-web
+#### From GitHub (Current Method)
 
-# Or install with pip
+Since AutoRunX is not yet published to PyPI, install it directly from GitHub:
+
+```bash
+# Method 1: Run directly with uvx (recommended)
+uvx --from git+https://github.com/faker2048/autorunx autorunx --help
+
+# Method 2: Install with pip
+pip install git+https://github.com/faker2048/autorunx.git
+
+# Method 3: Clone and install locally
+git clone https://github.com/faker2048/autorunx.git
+cd autorunx
+pip install -e .
+```
+
+#### Development Installation
+
+For development or testing:
+
+```bash
+git clone https://github.com/faker2048/autorunx.git
+cd autorunx
+make install-local  # Installs dependencies
+make dev            # Run in development mode
+```
+
+#### Future PyPI Installation
+
+Once published to PyPI, you'll be able to install with:
+
+```bash
+# This will work after PyPI publication
 pip install autorunx
+uvx autorunx
 ```
 
 ### Basic Operations

@@ -42,6 +42,14 @@ install-local: ## 本地安装
 	uv pip install click psutil rich toml
 	@echo "已安装依赖，可以使用 PYTHONPATH=src python -c \"from autorunx.cli import main; main()\" 运行"
 
+install-github: ## 从GitHub安装（测试用）
+	pip install git+https://github.com/faker2048/autorunx.git
+	@echo "已从GitHub安装，可以直接使用 autorunx 命令"
+
+test-uvx: ## 测试uvx从GitHub运行
+	@echo "测试 uvx 从 GitHub 运行："
+	@echo "uvx --from git+https://github.com/faker2048/autorunx autorunx --help"
+
 # 快捷命令
 add: ## 添加服务（使用方法：make add CMD="command" NAME="name"）
 	PYTHONPATH=src python -c "from autorunx.cli import main; main()" add "$(CMD)" --name "$(NAME)"
