@@ -14,6 +14,9 @@ git clone https://github.com/faker2048/autostartx.git
 cd autostartx
 pip install -e .
 
+# 或者通过 uvx 运行
+uvx --from git+https://github.com/faker2048/autostartx.git autostartx add "python -m http.server 8000" --name web
+
 # 添加服务
 autostartx add "python -m http.server 8000" --name web
 
