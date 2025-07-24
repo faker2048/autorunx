@@ -3,14 +3,14 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "autorunx"
+name = "autostartx"
 version = "0.1.0"
 description = "将任何命令行程序转换为可自动重启的后台服务"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.8"
 authors = [
-    { name = "AutoRunX", email = "autorunx@example.com" },
+    { name = "Autostartx", email = "autostartx@example.com" },
 ]
 keywords = ["service", "process", "daemon", "auto-restart", "cli"]
 classifiers = [
@@ -43,12 +43,12 @@ dev = [
 ]
 
 [project.scripts]
-autorunx = "autorunx.cli:main"
+autostartx = "autostartx.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/autorunx/autorunx"
-Repository = "https://github.com/autorunx/autorunx"
-Issues = "https://github.com/autorunx/autorunx/issues"
+Homepage = "https://github.com/autostartx/autostartx"
+Repository = "https://github.com/autostartx/autostartx"
+Issues = "https://github.com/autostartx/autostartx/issues"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -57,7 +57,7 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-autorunx = ["py.typed"]
+autostartx = ["py.typed"]
 
 [tool.black]
 line-length = 88

@@ -4,7 +4,7 @@ import os
 import tempfile
 import pytest
 from pathlib import Path
-from autorunx.config import Config, ConfigManager
+from autostartx.config import Config, ConfigManager
 
 
 def test_config_defaults():

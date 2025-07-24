@@ -1,4 +1,4 @@
-# AutoRunX - 命令行程序服务化工具
+# Autostartx - 命令行程序服务化工具
 
 一行命令将任何命令行程序转换为可自动重启的后台服务。简单、快速、零配置。
 
@@ -10,31 +10,31 @@
 
 ```bash
 # 从 GitHub 安装
-git clone https://github.com/faker2048/autorunx.git
-cd autorunx
+git clone https://github.com/faker2048/autostartx.git
+cd autostartx
 pip install -e .
 
 # 添加服务
-autorunx add "python -m http.server 8000" --name web
+autostartx add "python -m http.server 8000" --name web
 
 # 查看状态
-autorunx list
+autostartx list
 
 # 查看日志
-autorunx logs web -f
+autostartx logs web -f
 ```
 
 ## 常用命令
 
 ```bash
-autorunx add "命令"              # 添加服务
-autorunx list                   # 查看服务
-autorunx start/stop/restart     # 控制服务
-autorunx logs <名称> -f         # 查看日志
-autorunx daemon --action start  # 启动自动重启守护进程
+autostartx add "命令"              # 添加服务
+autostartx list                   # 查看服务
+autostartx start/stop/restart     # 控制服务
+autostartx logs <名称> -f         # 查看日志
+autostartx daemon --action start  # 启动自动重启守护进程
 ```
 
-## 为什么选择 AutoRunX？
+## 为什么选择 Autostartx？
 
 - **简单**: 一行命令就能将任何程序变成服务
 - **可靠**: 程序崩溃时自动重启

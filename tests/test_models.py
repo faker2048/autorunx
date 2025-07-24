@@ -2,7 +2,7 @@
 
 import time
 import pytest
-from autorunx.models import ServiceInfo, ServiceStatus
+from autostartx.models import ServiceInfo, ServiceStatus
 
 
 def test_service_info_creation():

@@ -14,7 +14,7 @@ from rich.panel import Panel
 from .service_manager import ServiceManager
 from .models import ServiceStatus
 from .interactive import select_service, confirm_action
-from .daemon import AutoRunXDaemon
+from .daemon import AutostartxDaemon
 from .monitor import AutoRestartManager
 from . import __version__
 
@@ -27,7 +27,7 @@ console = Console()
 @click.option('--config', help='配置文件路径')
 @click.pass_context
 def cli(ctx, config):
-    """AutoRunX - 命令行程序服务化工具."""
+    """Autostartx - 命令行程序服务化工具."""
     ctx.ensure_object(dict)
     ctx.obj['config_path'] = config
 
@@ -401,17 +401,17 @@ def logs(ctx, id, name, follow, tail, clear):
               default='status', help='守护进程操作')
 @click.pass_context
 def daemon(ctx, action):
-    """管理 autorunx 守护进程."""
-    daemon = AutoRunXDaemon(ctx.obj.get('config_path'))
+    """管理 autostartx 守护进程."""
+    daemon = AutostartxDaemon(ctx.obj.get('config_path'))
     
     if action == 'start':
-        console.print("🚀 启动 autorunx 守护进程...")
+        console.print("🚀 启动 autostartx 守护进程...")
         daemon.start()
     elif action == 'stop':
-        console.print("🛑 停止 autorunx 守护进程...")
+        console.print("🛑 停止 autostartx 守护进程...")
         daemon.stop()
     elif action == 'restart':
-        console.print("🔄 重启 autorunx 守护进程...")
+        console.print("🔄 重启 autostartx 守护进程...")
         daemon.restart()
     elif action == 'status':
         daemon.status()
@@ -421,7 +421,7 @@ def daemon(ctx, action):
 @click.pass_context
 def monitor(ctx):
     """启动监控模式（前台运行）."""
-    console.print("🔍 启动 AutoRunX 监控模式...")
+    console.print("🔍 启动 Autostartx 监控模式...")
     console.print("按 Ctrl+C 停止监控")
     
     try:

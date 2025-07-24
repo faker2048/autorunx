@@ -25,9 +25,9 @@ class Config:
     color_output: bool = True
     
     # 路径配置
-    config_dir: str = field(default_factory=lambda: str(Path.home() / ".config" / "autorunx"))
-    data_dir: str = field(default_factory=lambda: str(Path.home() / ".local" / "share" / "autorunx"))
-    log_dir: str = field(default_factory=lambda: str(Path.home() / ".local" / "share" / "autorunx" / "logs"))
+    config_dir: str = field(default_factory=lambda: str(Path.home() / ".config" / "autostartx"))
+    data_dir: str = field(default_factory=lambda: str(Path.home() / ".local" / "share" / "autostartx"))
+    log_dir: str = field(default_factory=lambda: str(Path.home() / ".local" / "share" / "autostartx" / "logs"))
 
 
 class ConfigManager:

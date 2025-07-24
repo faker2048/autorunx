@@ -1,5 +1,5 @@
-"""AutoRunX - 命令行程序服务化工具."""
+"""Autostartx - 命令行程序服务化工具."""
 
 __version__ = "0.1.0"
-__author__ = "AutoRunX"
+__author__ = "Autostartx"
 __description__ = "将任何命令行程序转换为可自动重启的后台服务"

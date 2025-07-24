@@ -140,14 +140,14 @@ class Daemon:
         raise NotImplementedError
 
 
-class AutoRunXDaemon(Daemon):
-    """AutoRunX 守护进程."""
+class AutostartxDaemon(Daemon):
+    """Autostartx 守护进程."""
     
     def __init__(self, config_path: str = None):
         # 设置pid文件路径
-        config_dir = Path.home() / ".config" / "autorunx"
+        config_dir = Path.home() / ".config" / "autostartx"
         config_dir.mkdir(parents=True, exist_ok=True)
-        pidfile = str(config_dir / "autorunx.pid")
+        pidfile = str(config_dir / "autostartx.pid")
         
         super().__init__(pidfile)
         self.config_path = config_path

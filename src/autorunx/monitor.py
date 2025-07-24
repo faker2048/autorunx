@@ -114,7 +114,7 @@ class AutoRestartManager:
         if self._running:
             return
         
-        print("🚀 AutoRunX 自动重启管理器启动")
+        print("🚀 Autostartx 自动重启管理器启动")
         self._running = True
         
         try:

@@ -1,4 +1,4 @@
-# AutoRunX - Turn Any Command into a Service
+# Autostartx - Turn Any Command into a Service
 
 Transform any command-line program into an auto-restarting background service with a single command. Simple, fast, zero configuration.
 
@@ -10,31 +10,31 @@ Transform any command-line program into an auto-restarting background service wi
 
 ```bash
 # Install from GitHub
-git clone https://github.com/faker2048/autorunx.git
-cd autorunx
+git clone https://github.com/faker2048/autostartx.git
+cd autostartx
 pip install -e .
 
 # Add a service
-autorunx add "python -m http.server 8000" --name web
+autostartx add "python -m http.server 8000" --name web
 
 # Check status
-autorunx list
+autostartx list
 
 # View logs
-autorunx logs web -f
+autostartx logs web -f
 ```
 
 ## Commands
 
 ```bash
-autorunx add "command"           # Add service
-autorunx list                   # Show services
-autorunx start/stop/restart     # Control services  
-autorunx logs <name> -f         # View logs
-autorunx daemon --action start  # Auto-restart daemon
+autostartx add "command"           # Add service
+autostartx list                   # Show services
+autostartx start/stop/restart     # Control services  
+autostartx logs <name> -f         # View logs
+autostartx daemon --action start  # Auto-restart daemon
 ```
 
-## Why AutoRunX?
+## Why Autostartx?
 
 - **Simple**: One command to turn anything into a service
 - **Reliable**: Automatic restarts when processes crash

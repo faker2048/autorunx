@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AutoRunX 基本使用示例."""
+"""Autostartx 基本使用示例."""
 
 import time
 import sys
@@ -8,13 +8,13 @@ import os
 # 添加项目路径以便导入
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from autorunx.service_manager import ServiceManager
-from autorunx.models import ServiceStatus
+from autostartx.service_manager import ServiceManager
+from autostartx.models import ServiceStatus
 
 
 def main():
     """基本使用示例."""
-    print("=== AutoRunX 基本使用示例 ===\n")
+    print("=== Autostartx 基本使用示例 ===\n")
     
     # 创建服务管理器
     manager = ServiceManager()
@@ -23,7 +23,7 @@ def main():
     print("1. 添加一个 echo 服务")
     echo_service = manager.add_service(
         name="demo-echo",
-        command="echo 'Hello from AutoRunX!'",
+        command="echo 'Hello from Autostartx!'",
         auto_restart=False  # echo 命令运行完就退出，不需要重启
     )
     print(f"   服务已添加: {echo_service.name} ({echo_service.id})")

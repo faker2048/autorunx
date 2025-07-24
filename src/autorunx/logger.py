@@ -23,7 +23,7 @@ class LogManager:
         log_dir.mkdir(parents=True, exist_ok=True)
         
         # 配置主日志
-        log_file = log_dir / "autorunx.log"
+        log_file = log_dir / "autostartx.log"
         
         # 设置日志格式
         formatter = logging.Formatter(
@@ -42,7 +42,7 @@ class LogManager:
         console_handler.setLevel(logging.WARNING)  # 只在控制台显示警告和错误
         
         # 配置根日志器
-        root_logger = logging.getLogger('autorunx')
+        root_logger = logging.getLogger('autostartx')
         root_logger.setLevel(getattr(logging, self.config_manager.config.log_level))
         root_logger.addHandler(file_handler)
         root_logger.addHandler(console_handler)
@@ -79,7 +79,7 @@ class LogManager:
             return all_lines[-lines:] if lines > 0 else all_lines
             
         except Exception as e:
-            logging.getLogger('autorunx').error(f"读取服务日志失败: {e}")
+            logging.getLogger('autostartx').error(f"读取服务日志失败: {e}")
             return []
     
     def clear_service_logs(self, service_id: str) -> bool:
@@ -89,10 +89,10 @@ class LogManager:
         try:
             with open(log_path, 'w', encoding='utf-8') as f:
                 f.write("")
-            logging.getLogger('autorunx').info(f"已清空服务 {service_id} 的日志")
+            logging.getLogger('autostartx').info(f"已清空服务 {service_id} 的日志")
             return True
         except Exception as e:
-            logging.getLogger('autorunx').error(f"清空服务日志失败: {e}")
+            logging.getLogger('autostartx').error(f"清空服务日志失败: {e}")
             return False
     
     def rotate_service_logs(self, service_id: str) -> bool:
@@ -124,11 +124,11 @@ class LogManager:
             with open(log_path, 'w', encoding='utf-8') as f:
                 f.write(f"=== 日志轮转: {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n")
             
-            logging.getLogger('autorunx').info(f"已轮转服务 {service_id} 的日志")
+            logging.getLogger('autostartx').info(f"已轮转服务 {service_id} 的日志")
             return True
             
         except Exception as e:
-            logging.getLogger('autorunx').error(f"轮转日志失败: {e}")
+            logging.getLogger('autostartx').error(f"轮转日志失败: {e}")
             return False
     
     def cleanup_old_logs(self) -> None:
@@ -144,16 +144,16 @@ class LogManager:
             for log_file in log_dir.glob("*.log.*"):
                 if log_file.stat().st_mtime < cutoff_time:
                     log_file.unlink()
-                    logging.getLogger('autorunx').info(f"已删除过期日志: {log_file}")
+                    logging.getLogger('autostartx').info(f"已删除过期日志: {log_file}")
             
             # 清理压缩日志
             for gz_file in log_dir.glob("*.gz"):
                 if gz_file.stat().st_mtime < cutoff_time:
                     gz_file.unlink()
-                    logging.getLogger('autorunx').info(f"已删除过期压缩日志: {gz_file}")
+                    logging.getLogger('autostartx').info(f"已删除过期压缩日志: {gz_file}")
                     
         except Exception as e:
-            logging.getLogger('autorunx').error(f"清理过期日志失败: {e}")
+            logging.getLogger('autostartx').error(f"清理过期日志失败: {e}")
     
     def get_log_stats(self, service_id: str) -> Dict[str, Any]:
         """获取日志统计信息."""
@@ -185,7 +185,7 @@ class LogManager:
             }
             
         except Exception as e:
-            logging.getLogger('autorunx').error(f"获取日志统计失败: {e}")
+            logging.getLogger('autostartx').error(f"获取日志统计失败: {e}")
             return {"exists": False, "error": str(e)}
     
     def _parse_size(self, size_str: str) -> int:
@@ -215,7 +215,7 @@ class LogManager:
             os.remove(file_path)
             
         except Exception as e:
-            logging.getLogger('autorunx').error(f"压缩日志文件失败: {e}")
+            logging.getLogger('autostartx').error(f"压缩日志文件失败: {e}")
     
     def _line_is_after_time(self, line: str, since_time: float) -> bool:
         """检查日志行是否在指定时间之后."""

@@ -3,9 +3,9 @@
 import os
 import tempfile
 import pytest
-from autorunx.config import ConfigManager
-from autorunx.storage import ServiceStorage
-from autorunx.models import ServiceInfo, ServiceStatus
+from autostartx.config import ConfigManager
+from autostartx.storage import ServiceStorage
+from autostartx.models import ServiceInfo, ServiceStatus
 
 
 @pytest.fixture
