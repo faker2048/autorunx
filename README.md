@@ -35,19 +35,27 @@ git clone https://github.com/faker2048/autostartx.git && cd autostartx && pip in
 ```bash
 autostartx add "python -m http.server 8000" --name web
 autostartx add "tailscale up --ssh" --name vpn
+
+# Or use the short alias 'asx' (same functionality)
+asx add "python -m http.server 8000" --name web
+asx list
 ```
 
 **Check your services**
 ```bash
 autostartx list        # Show all services
 autostartx logs web -f # View logs
+
+# Short version
+asx list
+asx logs web -f
 ```
 
 ## Commands
 
 ```bash
-autostartx add "command"           # Add service
-autostartx list                   # Show services
+autostartx add "command"           # Add service (or: asx add "command")
+autostartx list                   # Show services (or: asx list)
 autostartx start/stop/restart     # Control services  
 autostartx logs <name> -f         # View logs
 autostartx daemon --action start  # Auto-restart daemon

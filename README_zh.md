@@ -30,12 +30,20 @@ uvx autostartx add "python -m http.server 8000" --name web
 ```bash
 autostartx add "python -m http.server 8000" --name web
 autostartx add "tailscale up --ssh" --name vpn
+
+# 或使用简化别名 'asx'（功能完全相同）
+asx add "python -m http.server 8000" --name web
+asx list
 ```
 
 **查看服务状态**
 ```bash
 autostartx list        # 显示所有服务
 autostartx logs web -f # 查看日志
+
+# 简化版本
+asx list
+asx logs web -f
 ```
 
 **方式3: 传统安装**
@@ -46,8 +54,8 @@ git clone https://github.com/faker2048/autostartx.git && cd autostartx && pip in
 ## 常用命令
 
 ```bash
-autostartx add "命令"              # 添加服务
-autostartx list                   # 查看服务
+autostartx add "命令"              # 添加服务（或: asx add "命令"）
+autostartx list                   # 查看服务（或: asx list）
 autostartx start/stop/restart     # 控制服务
 autostartx logs <名称> -f         # 查看日志
 autostartx daemon --action start  # 启动自动重启守护进程

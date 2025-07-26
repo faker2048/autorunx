@@ -480,6 +480,16 @@ def install(ctx, enable_autostart):
         os.chmod(install_path, 0o755)
         console.print(f"[green]Successfully installed autostartx to {install_path}[/green]")
         
+        # Create asx alias (symbolic link)
+        asx_path = os.path.join(install_dir, "asx")
+        try:
+            if os.path.exists(asx_path):
+                os.remove(asx_path)
+            os.symlink(install_path, asx_path)
+            console.print(f"[green]Created alias: asx -> {install_path}[/green]")
+        except Exception as e:
+            console.print(f"[yellow]Warning: Could not create asx alias: {e}[/yellow]")
+        
         # Ask about autostart if not explicitly specified
         if not enable_autostart:
             import platform
@@ -563,10 +573,15 @@ def autostart(ctx, action):
         
         # Get autostartx executable path
         try:
-            autostartx_path = subprocess.check_output(["which", "autostartx"], text=True).strip()
+            # Try autostartx first, then asx as fallback
+            try:
+                autostartx_path = subprocess.check_output(["which", "autostartx"], text=True).strip()
+            except subprocess.CalledProcessError:
+                autostartx_path = subprocess.check_output(["which", "asx"], text=True).strip()
         except subprocess.CalledProcessError:
             # Fallback to common paths
-            for path in ["/usr/local/bin/autostartx", os.path.expanduser("~/.local/bin/autostartx")]:
+            for path in ["/usr/local/bin/autostartx", "/usr/local/bin/asx", 
+                        os.path.expanduser("~/.local/bin/autostartx"), os.path.expanduser("~/.local/bin/asx")]:
                 if os.path.exists(path):
                     autostartx_path = path
                     break
@@ -658,13 +673,15 @@ WantedBy=default.target
             autostartx_path = None
             try:
                 import shutil
-                autostartx_path = shutil.which("autostartx")
+                # Try autostartx first, then asx as fallback
+                autostartx_path = shutil.which("autostartx") or shutil.which("asx")
             except:
                 pass
             
             if not autostartx_path:
-                for path in [r"C:\Program Files\autostartx\autostartx.exe", 
-                           os.path.expanduser(r"~\AppData\Local\Programs\autostartx\autostartx.exe")]:
+                for path in [r"C:\Program Files\autostartx\autostartx.exe", r"C:\Program Files\autostartx\asx.exe",
+                           os.path.expanduser(r"~\AppData\Local\Programs\autostartx\autostartx.exe"),
+                           os.path.expanduser(r"~\AppData\Local\Programs\autostartx\asx.exe")]:
                     if os.path.exists(path):
                         autostartx_path = path
                         break
@@ -714,12 +731,14 @@ WantedBy=default.target
             autostartx_path = None
             try:
                 import shutil
-                autostartx_path = shutil.which("autostartx")
+                # Try autostartx first, then asx as fallback
+                autostartx_path = shutil.which("autostartx") or shutil.which("asx")
             except:
                 pass
                 
             if not autostartx_path:
-                for path in ["/usr/local/bin/autostartx", os.path.expanduser("~/.local/bin/autostartx")]:
+                for path in ["/usr/local/bin/autostartx", "/usr/local/bin/asx",
+                           os.path.expanduser("~/.local/bin/autostartx"), os.path.expanduser("~/.local/bin/asx")]:
                     if os.path.exists(path):
                         autostartx_path = path
                         break
@@ -906,7 +925,7 @@ def uninstall(ctx, remove_config):
     except Exception as e:
         console.print(f"[yellow]Warning: Could not stop daemon: {e}[/yellow]")
     
-    # Remove executable
+    # Remove executable and alias
     removed_paths = []
     for path in ["/usr/local/bin/autostartx", os.path.expanduser("~/.local/bin/autostartx")]:
         if os.path.exists(path):
@@ -916,6 +935,15 @@ def uninstall(ctx, remove_config):
                 console.print(f"[green]✅ Removed: {path}[/green]")
             except Exception as e:
                 console.print(f"[red]❌ Failed to remove {path}: {e}[/red]")
+    
+    # Remove asx aliases
+    for path in ["/usr/local/bin/asx", os.path.expanduser("~/.local/bin/asx")]:
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+                console.print(f"[green]✅ Removed alias: {path}[/green]")
+            except Exception as e:
+                console.print(f"[red]❌ Failed to remove alias {path}: {e}[/red]")
     
     if not removed_paths:
         console.print("[yellow]⚠️ No autostartx executable found to remove[/yellow]")

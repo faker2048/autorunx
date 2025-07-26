@@ -44,6 +44,7 @@ dev = [
 
 [project.scripts]
 autostartx = "autostartx.cli:main"
+asx = "autostartx.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/autostartx/autostartx"
