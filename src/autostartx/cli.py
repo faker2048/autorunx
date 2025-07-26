@@ -1,6 +1,8 @@
 """Command Line Interface."""
 
 import os
+import platform
+import subprocess
 import sys
 import time
 
@@ -18,6 +20,29 @@ from .monitor import AutoRestartManager
 from .service_manager import ServiceManager
 
 console = Console()
+
+
+def check_systemd_support():
+    """Check if the system supports systemd."""
+    if platform.system() != "Linux":
+        console.print("[red]❌ This tool only supports Linux systems with systemd[/red]")
+        console.print(f"[red]Current system: {platform.system()}[/red]")
+        sys.exit(1)
+    
+    try:
+        # Check if systemd is available
+        result = subprocess.run(
+            ["systemctl", "--version"], 
+            capture_output=True, 
+            text=True,
+            timeout=5
+        )
+        if result.returncode != 0:
+            raise subprocess.CalledProcessError(result.returncode, "systemctl")
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+        console.print("[red]❌ systemd is not available on this system[/red]")
+        console.print("[red]This tool requires systemd to manage services[/red]")
+        sys.exit(1)
 
 
 @click.group()
@@ -522,28 +547,19 @@ except ImportError:
 
         # Ask about autostart if not explicitly specified
         if not enable_autostart:
-            import platform
-            system = platform.system().lower()
-            supported_platforms = ["linux", "windows", "darwin"]
-
-            if system in supported_platforms:
-                try:
-                    platform_map = {"linux": "Linux", "windows": "Windows", "darwin": "macOS"}
-                    platform_name = platform_map[system]
-                    enable_autostart = click.confirm(
-                        f"Do you want to enable system autostart on {platform_name}? "
-                        "(autostartx will start automatically after reboot/login)",
-                        default=True
-                    )
-                except click.Abort:
-                    enable_autostart = False
-            else:
-                console.print(
-                    f"[yellow]Note: System autostart is not supported on {system}[/yellow]"
+            try:
+                enable_autostart = click.confirm(
+                    "Do you want to enable system autostart on Linux? "
+                    "(autostartx will start automatically after reboot/login)",
+                    default=True
                 )
+            except click.Abort:
+                enable_autostart = False
 
         # Setup autostart if requested
         if enable_autostart:
+            # Check systemd support before setting up autostart
+            check_systemd_support()
             console.print("\n🚀 Setting up system autostart...")
             # Use the new autostart command with the installed path
             import subprocess
@@ -599,8 +615,9 @@ except ImportError:
 @click.pass_context
 def autostart(ctx, action):
     """Manage system autostart for autostartx daemon."""
-    import platform
-    import subprocess
+    # Check systemd support only when using autostart
+    check_systemd_support()
+    
     from pathlib import Path
 
     def get_systemd_service_path():
@@ -699,263 +716,7 @@ WantedBy=default.target
         except subprocess.CalledProcessError:
             return False, "unknown"
 
-    # Main logic
-    system = platform.system().lower()
-
-    # Platform-specific implementations
-    def handle_windows_autostart(action):
-        """Handle Windows autostart via registry."""
-        try:
-            import winreg
-        except ImportError:
-            console.print("[red]Error: Windows registry module not available[/red]")
-            return False
-
-        key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
-        value_name = "Autostartx"
-
-        try:
-            # Get autostartx executable path
-            autostartx_path = None
-            try:
-                import shutil
-                # Try autostartx first, then asx as fallback
-                autostartx_path = shutil.which("autostartx") or shutil.which("asx")
-            except:
-                pass
-
-            if not autostartx_path:
-                for path in [r"C:\Program Files\autostartx\autostartx.exe", r"C:\Program Files\autostartx\asx.exe",
-                           os.path.expanduser(r"~\AppData\Local\Programs\autostartx\autostartx.exe"),
-                           os.path.expanduser(r"~\AppData\Local\Programs\autostartx\asx.exe")]:
-                    if os.path.exists(path):
-                        autostartx_path = path
-                        break
-
-            if not autostartx_path:
-                console.print("[red]Error: autostartx executable not found[/red]")
-                return False
-
-            if action == "enable":
-                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE) as key:
-                    winreg.SetValueEx(key, value_name, 0, winreg.REG_SZ, f'"{autostartx_path}" daemon --action start')
-                console.print("[green]✅ Autostart enabled via Windows registry[/green]")
-                return True
-
-            elif action == "disable":
-                try:
-                    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE) as key:
-                        winreg.DeleteValue(key, value_name)
-                    console.print("[green]🛑 Autostart disabled[/green]")
-                    return True
-                except FileNotFoundError:
-                    console.print("[yellow]Autostart was not enabled[/yellow]")
-                    return True
-
-            elif action == "status":
-                try:
-                    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_READ) as key:
-                        value, _ = winreg.QueryValueEx(key, value_name)
-                        return True, "enabled"
-                except FileNotFoundError:
-                    return False, "disabled"
-
-        except Exception as e:
-            console.print(f"[red]Windows registry operation failed: {e}[/red]")
-            return False
-
-    def handle_macos_autostart(action):
-        """Handle macOS autostart via LaunchAgent."""
-        import plistlib
-        from pathlib import Path
-
-        launch_agents_dir = Path.home() / "Library" / "LaunchAgents"
-        plist_file = launch_agents_dir / "com.autostartx.daemon.plist"
-
-        try:
-            # Get autostartx executable path
-            autostartx_path = None
-            try:
-                import shutil
-                # Try autostartx first, then asx as fallback
-                autostartx_path = shutil.which("autostartx") or shutil.which("asx")
-            except:
-                pass
-
-            if not autostartx_path:
-                for path in ["/usr/local/bin/autostartx", "/usr/local/bin/asx",
-                           os.path.expanduser("~/.local/bin/autostartx"), os.path.expanduser("~/.local/bin/asx")]:
-                    if os.path.exists(path):
-                        autostartx_path = path
-                        break
-
-            if not autostartx_path:
-                console.print("[red]Error: autostartx executable not found[/red]")
-                return False
-
-            if action == "enable":
-                launch_agents_dir.mkdir(parents=True, exist_ok=True)
-
-                plist_content = {
-                    "Label": "com.autostartx.daemon",
-                    "ProgramArguments": [autostartx_path, "daemon", "--action", "start"],
-                    "RunAtLoad": True,
-                    "KeepAlive": {
-                        "SuccessfulExit": False
-                    },
-                    "StandardOutPath": str(Path.home() / ".local" / "share" / "autostartx" / "logs" / "daemon.log"),
-                    "StandardErrorPath": str(Path.home() / ".local" / "share" / "autostartx" / "logs" / "daemon.error.log")
-                }
-
-                with open(plist_file, 'wb') as f:
-                    plistlib.dump(plist_content, f)
-
-                # Load the agent
-                subprocess.run(["launchctl", "load", str(plist_file)], check=True, capture_output=True)
-                console.print("[green]✅ Autostart enabled via macOS LaunchAgent[/green]")
-                return True
-
-            elif action == "disable":
-                if plist_file.exists():
-                    try:
-                        subprocess.run(["launchctl", "unload", str(plist_file)], capture_output=True)
-                        plist_file.unlink()
-                        console.print("[green]🛑 Autostart disabled[/green]")
-                        return True
-                    except Exception as e:
-                        console.print(f"[red]Failed to disable LaunchAgent: {e}[/red]")
-                        return False
-                else:
-                    console.print("[yellow]Autostart was not enabled[/yellow]")
-                    return True
-
-            elif action == "status":
-                if plist_file.exists():
-                    try:
-                        result = subprocess.run(
-                            ["launchctl", "list", "com.autostartx.daemon"],
-                            capture_output=True, text=True
-                        )
-                        if result.returncode == 0:
-                            return True, "enabled"
-                        else:
-                            return False, "disabled"
-                    except Exception:
-                        return False, "unknown"
-                else:
-                    return False, "disabled"
-
-        except Exception as e:
-            console.print(f"[red]macOS LaunchAgent operation failed: {e}[/red]")
-            return False
-
-    # Route to appropriate platform handler
-    if system == "windows":
-        if action == "enable":
-            console.print("🚀 Enabling autostartx autostart on Windows...")
-            if handle_windows_autostart("enable"):
-                console.print("[green]✅ Autostart successfully enabled![/green]")
-                console.print("[dim]Autostartx daemon will start automatically after login[/dim]")
-
-                # Mark all existing services with auto_restart=True as auto_start=True
-                manager = ServiceManager(ctx.obj.get("config_path"))
-                services = manager.list_services()
-                auto_start_count = 0
-
-                for service in services:
-                    if service.auto_restart and not getattr(service, 'auto_start', False):
-                        service.auto_start = True
-                        manager.storage.update_service(service)
-                        auto_start_count += 1
-
-                if auto_start_count > 0:
-                    console.print(f"[green]✅ Marked {auto_start_count} service(s) for auto-start after reboot[/green]")
-                else:
-                    console.print("[dim]No services need auto-start marking[/dim]")
-            else:
-                console.print("[red]❌ Failed to enable autostart[/red]")
-            return
-        elif action == "disable":
-            console.print("🛑 Disabling autostartx autostart on Windows...")
-            handle_windows_autostart("disable")
-
-            # Clear auto_start flag from all services
-            manager = ServiceManager(ctx.obj.get("config_path"))
-            services = manager.list_services()
-            auto_start_count = 0
-
-            for service in services:
-                if getattr(service, 'auto_start', False):
-                    service.auto_start = False
-                    manager.storage.update_service(service)
-                    auto_start_count += 1
-
-            if auto_start_count > 0:
-                console.print(f"[green]✅ Cleared auto-start flag from {auto_start_count} service(s)[/green]")
-            return
-        elif action == "status":
-            console.print("📊 Checking autostart status on Windows...")
-            enabled, status = handle_windows_autostart("status")
-            if enabled:
-                console.print("[green]✅ Autostart is enabled[/green]")
-            else:
-                console.print(f"[yellow]❌ Autostart is disabled ({status})[/yellow]")
-            return
-    elif system == "darwin":  # macOS
-        if action == "enable":
-            console.print("🚀 Enabling autostartx autostart on macOS...")
-            if handle_macos_autostart("enable"):
-                console.print("[green]✅ Autostart successfully enabled![/green]")
-                console.print("[dim]Autostartx daemon will start automatically after login[/dim]")
-
-                # Mark all existing services with auto_restart=True as auto_start=True
-                manager = ServiceManager(ctx.obj.get("config_path"))
-                services = manager.list_services()
-                auto_start_count = 0
-
-                for service in services:
-                    if service.auto_restart and not getattr(service, 'auto_start', False):
-                        service.auto_start = True
-                        manager.storage.update_service(service)
-                        auto_start_count += 1
-
-                if auto_start_count > 0:
-                    console.print(f"[green]✅ Marked {auto_start_count} service(s) for auto-start after reboot[/green]")
-                else:
-                    console.print("[dim]No services need auto-start marking[/dim]")
-            else:
-                console.print("[red]❌ Failed to enable autostart[/red]")
-            return
-        elif action == "disable":
-            console.print("🛑 Disabling autostartx autostart on macOS...")
-            handle_macos_autostart("disable")
-
-            # Clear auto_start flag from all services
-            manager = ServiceManager(ctx.obj.get("config_path"))
-            services = manager.list_services()
-            auto_start_count = 0
-
-            for service in services:
-                if getattr(service, 'auto_start', False):
-                    service.auto_start = False
-                    manager.storage.update_service(service)
-                    auto_start_count += 1
-
-            if auto_start_count > 0:
-                console.print(f"[green]✅ Cleared auto-start flag from {auto_start_count} service(s)[/green]")
-            return
-        elif action == "status":
-            console.print("📊 Checking autostart status on macOS...")
-            enabled, status = handle_macos_autostart("status")
-            if enabled:
-                console.print("[green]✅ Autostart is enabled[/green]")
-            else:
-                console.print(f"[yellow]❌ Autostart is disabled ({status})[/yellow]")
-            return
-    elif system != "linux":
-        console.print(f"[yellow]Autostart is not supported on {system}[/yellow]")
-        console.print("[yellow]Supported platforms: Linux (systemd), Windows (registry), macOS (LaunchAgent)[/yellow]")
-        return
+    # Linux systemd autostart implementation
 
     if action == "enable":
         console.print("🚀 Enabling autostartx autostart...")
@@ -975,7 +736,9 @@ WantedBy=default.target
                     auto_start_count += 1
 
             if auto_start_count > 0:
-                console.print(f"[green]✅ Marked {auto_start_count} service(s) for auto-start after reboot[/green]")
+                console.print(
+                    f"[green]✅ Marked {auto_start_count} service(s) for auto-start after reboot[/green]"
+                )
             else:
                 console.print("[dim]No services need auto-start marking[/dim]")
         else:
@@ -1005,7 +768,9 @@ WantedBy=default.target
                     auto_start_count += 1
 
             if auto_start_count > 0:
-                console.print(f"[green]✅ Cleared auto-start flag from {auto_start_count} service(s)[/green]")
+                console.print(
+                    f"[green]✅ Cleared auto-start flag from {auto_start_count} service(s)[/green]"
+                )
         else:
             console.print("[red]❌ Failed to disable autostart[/red]")
 
