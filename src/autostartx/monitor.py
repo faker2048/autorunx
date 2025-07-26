@@ -122,6 +122,10 @@ class AutoRestartManager:
             return
 
         print("🚀 Autostartx auto-restart manager started")
+        
+        # Auto-recovery: restart services that should be running
+        self._auto_recover_services()
+        
         self._running = True
 
         try:
@@ -136,6 +140,61 @@ class AutoRestartManager:
             print("\nReceived interrupt signal, shutting down...")
         finally:
             self.stop()
+
+    def _auto_recover_services(self) -> None:
+        """Auto-recover services that should be running after system restart."""
+        print("🔄 Checking for services to auto-recover...")
+        
+        try:
+            services = self.service_manager.list_services()
+            recovery_candidates = []
+            
+            for service in services:
+                # Find services that should be auto-recovered:
+                # 1. Have auto_restart enabled
+                # 2. Status is RUNNING but process doesn't exist (system restart scenario)
+                if (service.auto_restart and 
+                    service.status == ServiceStatus.RUNNING and 
+                    service.pid and 
+                    not self.service_manager.process_manager.is_process_running(service.pid)):
+                    recovery_candidates.append(service)
+            
+            if not recovery_candidates:
+                print("✅ No services need recovery")
+                return
+            
+            print(f"🔧 Found {len(recovery_candidates)} service(s) to recover:")
+            for service in recovery_candidates:
+                print(f"   - {service.name}")
+            
+            # Recover services
+            recovered_count = 0
+            failed_count = 0
+            
+            for service in recovery_candidates:
+                print(f"🔄 Recovering service: {service.name}")
+                
+                # Reset service state
+                service.pid = None
+                service.update_status(ServiceStatus.STOPPED)
+                self.service_manager.storage.update_service(service)
+                
+                # Attempt to start the service
+                if self.service_manager.start_service(service.id):
+                    print(f"✅ Successfully recovered: {service.name}")
+                    recovered_count += 1
+                else:
+                    print(f"❌ Failed to recover: {service.name}")
+                    failed_count += 1
+                    
+                # Small delay between recoveries
+                time.sleep(1)
+            
+            print(f"🎯 Recovery complete: {recovered_count} succeeded, {failed_count} failed")
+            
+        except Exception as e:
+            print(f"⚠️ Error during auto-recovery: {e}")
+            # Continue with normal monitoring even if recovery fails
 
     def stop(self) -> None:
         """Stop auto-restart manager."""
