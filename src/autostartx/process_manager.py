@@ -134,7 +134,7 @@ class ProcessManager:
                 # Store the process PID
                 service.pid = process.pid
                 print(f"[DEBUG] Started service {service.name} with PID {process.pid}")
-                
+
                 # For sudo commands, try to find the actual child process
                 if cmd_parts[0] == "sudo":
                     time.sleep(0.5)  # Give time for child process to start
@@ -149,7 +149,7 @@ class ProcessManager:
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         # If we can't get child processes, use original PID
                         pass
-                
+
                 service.update_status(ServiceStatus.RUNNING)
                 return True
 
@@ -172,7 +172,7 @@ class ProcessManager:
                 return True
 
             process = psutil.Process(service.pid)
-            
+
             # Get all child processes before terminating
             children = []
             try:
@@ -186,7 +186,7 @@ class ProcessManager:
                 process.kill()
             else:
                 process.terminate()
-                
+
             # Wait for main process to stop
             try:
                 process.wait(timeout=5)
@@ -302,17 +302,17 @@ class ProcessManager:
             if not psutil.pid_exists(pid):
                 print(f"[DEBUG] Process {pid} not found in system")
                 return False
-                
+
             process = psutil.Process(pid)
-            
+
             # Check if process is running
             if not process.is_running():
                 print(f"[DEBUG] Process {pid} exists but not running (status: {process.status()})")
                 return False
-                
+
             print(f"[DEBUG] Process {pid} check passed - running normally")
             return True
-            
+
         except psutil.NoSuchProcess:
             print(f"[DEBUG] Process {pid} no longer exists")
             return False
