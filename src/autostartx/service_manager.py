@@ -100,8 +100,11 @@ class ServiceManager:
         # If service is running, stop it first
         if service.status == ServiceStatus.RUNNING:
             if not force:
-                return False  # Need force delete to remove running service
-            self.stop_service(service.id, force=True)
+                # Return False to let CLI handle the user-friendly message
+                return False
+            # Force stop the service
+            if not self.stop_service(service.id, force=True):
+                return False
 
         return self.storage.remove_service(service.id)
 

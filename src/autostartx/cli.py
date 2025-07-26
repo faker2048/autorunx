@@ -324,6 +324,18 @@ def remove(ctx, id, name, force):
         console.print("❌ Service not found", style="red")
         return
 
+    # Check if service is running
+    if service.status == ServiceStatus.RUNNING:
+        if not force:
+            console.print(f"⚠️  Service '{service.name}' is currently running", style="yellow")
+            console.print("You need to stop it first before removing:")
+            console.print(f"  autostartx stop {service.name}", style="cyan")
+            console.print("Or use --force to stop and remove:", style="dim")
+            console.print(f"  autostartx remove {service.name} --force", style="dim")
+            return
+        else:
+            console.print(f"🛑 Stopping running service '{service.name}' before removal...")
+
     # Confirm removal
     if not force and not confirm_action("remove", service.name):
         console.print("Removal cancelled")
