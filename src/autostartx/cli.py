@@ -443,9 +443,9 @@ def monitor(ctx):
 @click.pass_context
 def install(ctx):
     """Install autostartx to system."""
+    import os
     import shutil
     import sys
-    import os
 
     # Get the script path
     script_path = sys.argv[0]

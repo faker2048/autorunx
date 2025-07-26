@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """Autostartx 基本使用示例."""
 
-import time
-import sys
 import os
+import sys
+import time
 
 # 添加项目路径以便导入
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from autostartx.service_manager import ServiceManager
-from autostartx.models import ServiceStatus
 
 
 def main():
