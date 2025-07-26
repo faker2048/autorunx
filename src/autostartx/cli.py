@@ -22,6 +22,20 @@ from .service_manager import ServiceManager
 console = Console()
 
 
+def _get_service_identifier(manager, id, name, filter_status=None, prompt="Please select service"):
+    """Helper function to get service identifier with interactive selection."""
+    service_identifier = id or name
+    if not service_identifier:
+        services = manager.list_services()
+        if filter_status:
+            services = [s for s in services if s.status == filter_status]
+        service = select_service(services, prompt)
+        if not service:
+            return None
+        service_identifier = service.id
+    return service_identifier
+
+
 def check_systemd_support():
     """Check if the system supports systemd."""
     if platform.system() != "Linux":
@@ -158,14 +172,11 @@ def status(ctx, id, name):
     """Show service status."""
     manager = ServiceManager(ctx.obj.get("config_path"))
 
-    service_identifier = id or name
+    service_identifier = _get_service_identifier(
+        manager, id, name, prompt="Please select service to view status"
+    )
     if not service_identifier:
-        # Interactive selection
-        services = manager.list_services()
-        service = select_service(services, "Please select service to view status")
-        if not service:
-            return
-        service_identifier = service.id
+        return
 
     status_info = manager.get_service_status(service_identifier)
     if not status_info:
@@ -221,14 +232,11 @@ def start(ctx, id, name):
     """Start service."""
     manager = ServiceManager(ctx.obj.get("config_path"))
 
-    service_identifier = id or name
+    service_identifier = _get_service_identifier(
+        manager, id, name, filter_status=ServiceStatus.STOPPED, prompt="Please select service to start"
+    )
     if not service_identifier:
-        # Interactive selection of stopped services
-        services = [s for s in manager.list_services() if s.status == ServiceStatus.STOPPED]
-        service = select_service(services, "Please select service to start")
-        if not service:
-            return
-        service_identifier = service.id
+        return
 
     if manager.start_service(service_identifier):
         console.print("🚀 Service started")
@@ -245,14 +253,11 @@ def stop(ctx, id, name, force):
     """Stop service."""
     manager = ServiceManager(ctx.obj.get("config_path"))
 
-    service_identifier = id or name
+    service_identifier = _get_service_identifier(
+        manager, id, name, filter_status=ServiceStatus.RUNNING, prompt="Please select service to stop"
+    )
     if not service_identifier:
-        # Interactive selection of running services
-        services = [s for s in manager.list_services() if s.status == ServiceStatus.RUNNING]
-        service = select_service(services, "Please select service to stop")
-        if not service:
-            return
-        service_identifier = service.id
+        return
 
     if manager.stop_service(service_identifier, force):
         console.print("⏹️ Service stopped")
@@ -269,13 +274,11 @@ def restart(ctx, id, name, force):
     """Restart service."""
     manager = ServiceManager(ctx.obj.get("config_path"))
 
-    service_identifier = id or name
+    service_identifier = _get_service_identifier(
+        manager, id, name, prompt="Please select service to restart"
+    )
     if not service_identifier:
-        services = manager.list_services()
-        service = select_service(services, "Please select service to restart")
-        if not service:
-            return
-        service_identifier = service.id
+        return
 
     if manager.restart_service(service_identifier, force):
         console.print("🔄 Service restarted")
@@ -291,13 +294,11 @@ def pause(ctx, id, name):
     """Pause service."""
     manager = ServiceManager(ctx.obj.get("config_path"))
 
-    service_identifier = id or name
+    service_identifier = _get_service_identifier(
+        manager, id, name, filter_status=ServiceStatus.RUNNING, prompt="Please select service to pause"
+    )
     if not service_identifier:
-        services = [s for s in manager.list_services() if s.status == ServiceStatus.RUNNING]
-        service = select_service(services, "Please select service to pause")
-        if not service:
-            return
-        service_identifier = service.id
+        return
 
     if manager.pause_service(service_identifier):
         console.print("⏸️ Service paused")
@@ -313,13 +314,11 @@ def resume(ctx, id, name):
     """Resume service."""
     manager = ServiceManager(ctx.obj.get("config_path"))
 
-    service_identifier = id or name
+    service_identifier = _get_service_identifier(
+        manager, id, name, filter_status=ServiceStatus.PAUSED, prompt="Please select service to resume"
+    )
     if not service_identifier:
-        services = [s for s in manager.list_services() if s.status == ServiceStatus.PAUSED]
-        service = select_service(services, "Please select service to resume")
-        if not service:
-            return
-        service_identifier = service.id
+        return
 
     if manager.resume_service(service_identifier):
         console.print("▶️ Service resumed")
@@ -336,13 +335,11 @@ def remove(ctx, id, name, force):
     """Remove service."""
     manager = ServiceManager(ctx.obj.get("config_path"))
 
-    service_identifier = id or name
+    service_identifier = _get_service_identifier(
+        manager, id, name, prompt="Please select service to remove"
+    )
     if not service_identifier:
-        services = manager.list_services()
-        service = select_service(services, "Please select service to remove")
-        if not service:
-            return
-        service_identifier = service.name
+        return
 
     service = manager.get_service(service_identifier)
     if not service:
@@ -383,13 +380,11 @@ def logs(ctx, id, name, follow, tail, clear):
     """View service logs."""
     manager = ServiceManager(ctx.obj.get("config_path"))
 
-    service_identifier = id or name
+    service_identifier = _get_service_identifier(
+        manager, id, name, prompt="Please select service to view logs"
+    )
     if not service_identifier:
-        services = manager.list_services()
-        service = select_service(services, "Please select service to view logs")
-        if not service:
-            return
-        service_identifier = service.id
+        return
 
     service = manager.get_service(service_identifier)
     if not service:
@@ -481,9 +476,7 @@ def monitor(ctx):
 @click.pass_context
 def install(ctx, enable_autostart):
     """Install autostartx to system."""
-    import os
     import shutil
-    import sys
 
     # Get the script path
     script_path = sys.argv[0]
@@ -512,7 +505,6 @@ def install(ctx, enable_autostart):
                 os.remove(asx_path)
 
             # Create a proper asx script with correct shebang
-            import sys
             asx_content = """#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import sys
@@ -562,7 +554,6 @@ except ImportError:
             check_systemd_support()
             console.print("\n🚀 Setting up system autostart...")
             # Use the new autostart command with the installed path
-            import subprocess
             try:
                 # Update PATH to include install directory for the autostart command
                 env = os.environ.copy()
@@ -801,7 +792,6 @@ WantedBy=default.target
 @click.pass_context
 def uninstall(ctx, remove_config):
     """Uninstall autostartx from system."""
-    import subprocess
     from pathlib import Path
 
     console.print("🗑️ Uninstalling autostartx...")
