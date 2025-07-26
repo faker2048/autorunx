@@ -43,6 +43,8 @@ class ServiceManager:
 
         success = self.process_manager.start_service(service)
         if success:
+            # Mark service as auto-startable when manually started
+            service.auto_start = True
             self.storage.update_service(service)
         return success
 

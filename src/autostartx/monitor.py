@@ -152,11 +152,39 @@ class AutoRestartManager:
             for service in services:
                 # Find services that should be auto-recovered:
                 # 1. Have auto_restart enabled
-                # 2. Status is RUNNING but process doesn't exist (system restart scenario)
-                if (service.auto_restart and
-                    service.status == ServiceStatus.RUNNING and
-                    service.pid and
+                # 2. Either:
+                #    - Status is RUNNING but process doesn't exist (daemon restart scenario)
+                #    - Status is STOPPED but was previously running (system restart scenario)
+                #    - Service has auto_start=True (explicitly marked for boot startup)
+                should_recover = False
+                
+                if not service.auto_restart:
+                    continue
+                
+                # Case 1: Service marked as RUNNING but process doesn't exist
+                if (service.status == ServiceStatus.RUNNING and 
+                    service.pid and 
                     not self.service_manager.process_manager.is_process_running(service.pid)):
+                    should_recover = True
+                    
+                # Case 2: Service is STOPPED but has restart history (was running before)
+                # This handles system restart where all processes are killed
+                elif (service.status == ServiceStatus.STOPPED and 
+                      service.restart_count > 0):
+                    should_recover = True
+                    
+                # Case 3: Service was manually started and is currently stopped
+                # Check if service has been started before (has created_at < updated_at)
+                elif (service.status == ServiceStatus.STOPPED and 
+                      service.updated_at > service.created_at + 60):  # 60 seconds buffer
+                    should_recover = True
+                    
+                # Case 4: Service has auto_start=True (explicitly marked for boot startup)
+                elif (service.status == ServiceStatus.STOPPED and 
+                      getattr(service, 'auto_start', False)):
+                    should_recover = True
+                
+                if should_recover:
                     recovery_candidates.append(service)
 
             if not recovery_candidates:
@@ -165,7 +193,16 @@ class AutoRestartManager:
 
             print(f"🔧 Found {len(recovery_candidates)} service(s) to recover:")
             for service in recovery_candidates:
-                print(f"   - {service.name}")
+                status_reason = ""
+                if service.status == ServiceStatus.RUNNING:
+                    status_reason = "(process died)"
+                elif service.restart_count > 0:
+                    status_reason = "(has restart history)"
+                elif getattr(service, 'auto_start', False):
+                    status_reason = "(marked for auto-start)"
+                else:
+                    status_reason = "(was previously active)"
+                print(f"   - {service.name} {status_reason}")
 
             # Recover services
             recovered_count = 0
@@ -194,6 +231,7 @@ class AutoRestartManager:
 
         except Exception as e:
             print(f"⚠️ Error during auto-recovery: {e}")
+            # Continue with normal monitoring even if recovery fails
             # Continue with normal monitoring even if recovery fails
 
     def stop(self) -> None:

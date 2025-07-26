@@ -26,6 +26,7 @@ class ServiceInfo:
     status: ServiceStatus = ServiceStatus.STOPPED
     pid: Optional[int] = None
     auto_restart: bool = True
+    auto_start: bool = False  # Should this service start automatically on system boot
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
     restart_count: int = 0
@@ -43,6 +44,7 @@ class ServiceInfo:
             "status": self.status.value,
             "pid": self.pid,
             "auto_restart": self.auto_restart,
+            "auto_start": self.auto_start,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "restart_count": self.restart_count,
@@ -58,6 +60,9 @@ class ServiceInfo:
         data = data.copy()
         if "status" in data:
             data["status"] = ServiceStatus(data["status"])
+        # Handle missing auto_start field for backward compatibility
+        if "auto_start" not in data:
+            data["auto_start"] = False
         return cls(**data)
 
     def update_status(self, status: ServiceStatus) -> None:
