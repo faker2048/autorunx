@@ -583,7 +583,7 @@ except ImportError:
         console.print("1. Add services: [cyan]autostartx add \"your-command\"[/cyan]")
         if not enable_autostart:
             console.print("2. Enable autostart: [cyan]autostartx autostart enable[/cyan]")
-        console.print("3. Start daemon: [cyan]autostartx daemon start[/cyan]")
+        console.print("3. Start daemon: [cyan]autostartx daemon --action start[/cyan]")
 
     except Exception as e:
         console.print(f"[red]Installation failed: {e}[/red]")
@@ -641,8 +641,8 @@ After=default.target
 
 [Service]
 Type=forking
-ExecStart={autostartx_path} daemon start
-ExecStop={autostartx_path} daemon stop
+ExecStart={autostartx_path} daemon --action start
+ExecStop={autostartx_path} daemon --action stop
 Restart=always
 RestartSec=5
 Environment=PATH={os.environ.get('PATH', '')}
@@ -738,7 +738,7 @@ WantedBy=default.target
 
             if action == "enable":
                 with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE) as key:
-                    winreg.SetValueEx(key, value_name, 0, winreg.REG_SZ, f'"{autostartx_path}" daemon start')
+                    winreg.SetValueEx(key, value_name, 0, winreg.REG_SZ, f'"{autostartx_path}" daemon --action start')
                 console.print("[green]✅ Autostart enabled via Windows registry[/green]")
                 return True
 
@@ -798,7 +798,7 @@ WantedBy=default.target
 
                 plist_content = {
                     "Label": "com.autostartx.daemon",
-                    "ProgramArguments": [autostartx_path, "daemon", "start"],
+                    "ProgramArguments": [autostartx_path, "daemon", "--action", "start"],
                     "RunAtLoad": True,
                     "KeepAlive": {
                         "SuccessfulExit": False
