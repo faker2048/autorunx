@@ -479,7 +479,7 @@ def install(ctx, enable_autostart):
         shutil.copy2(script_path, install_path)
         os.chmod(install_path, 0o755)
         console.print(f"[green]Successfully installed autostartx to {install_path}[/green]")
-        
+
         # Create asx alias (symbolic link)
         asx_path = os.path.join(install_dir, "asx")
         try:
@@ -489,25 +489,29 @@ def install(ctx, enable_autostart):
             console.print(f"[green]Created alias: asx -> {install_path}[/green]")
         except Exception as e:
             console.print(f"[yellow]Warning: Could not create asx alias: {e}[/yellow]")
-        
+
         # Ask about autostart if not explicitly specified
         if not enable_autostart:
             import platform
             system = platform.system().lower()
             supported_platforms = ["linux", "windows", "darwin"]
-            
+
             if system in supported_platforms:
                 try:
-                    platform_name = {"linux": "Linux", "windows": "Windows", "darwin": "macOS"}[system]
+                    platform_map = {"linux": "Linux", "windows": "Windows", "darwin": "macOS"}
+                    platform_name = platform_map[system]
                     enable_autostart = click.confirm(
-                        f"Do you want to enable system autostart on {platform_name}? (autostartx will start automatically after reboot/login)",
+                        f"Do you want to enable system autostart on {platform_name}? "
+                        "(autostartx will start automatically after reboot/login)",
                         default=True
                     )
                 except click.Abort:
                     enable_autostart = False
             else:
-                console.print(f"[yellow]Note: System autostart is not supported on {system}[/yellow]")
-        
+                console.print(
+                    f"[yellow]Note: System autostart is not supported on {system}[/yellow]"
+                )
+
         # Setup autostart if requested
         if enable_autostart:
             console.print("\n🚀 Setting up system autostart...")
@@ -518,33 +522,39 @@ def install(ctx, enable_autostart):
                 env = os.environ.copy()
                 if install_dir not in env.get('PATH', ''):
                     env['PATH'] = f"{install_dir}:{env.get('PATH', '')}"
-                
+
                 result = subprocess.run(
                     [install_path, "autostart", "enable"],
                     env=env,
                     capture_output=True,
                     text=True
                 )
-                
+
                 if result.returncode == 0:
                     console.print("[green]✅ Autostart enabled successfully![/green]")
                     console.print("[dim]Autostartx will start automatically after reboot[/dim]")
                 else:
-                    console.print(f"[yellow]Warning: Could not enable autostart: {result.stderr}[/yellow]")
-                    console.print(f"[dim]You can enable it later with: {install_path} autostart enable[/dim]")
-            
+                    console.print(
+                        f"[yellow]Warning: Could not enable autostart: {result.stderr}[/yellow]"
+                    )
+                    console.print(
+                        f"[dim]You can enable it later with: {install_path} autostart enable[/dim]"
+                    )
+
             except Exception as e:
                 console.print(f"[yellow]Warning: Could not enable autostart: {e}[/yellow]")
-                console.print(f"[dim]You can enable it later with: {install_path} autostart enable[/dim]")
-        
+                console.print(
+                    f"[dim]You can enable it later with: {install_path} autostart enable[/dim]"
+                )
+
         # Show next steps
-        console.print(f"\n[bold green]Installation complete![/bold green]")
-        console.print(f"Next steps:")
-        console.print(f"1. Add services: [cyan]autostartx add \"your-command\"[/cyan]")
+        console.print("\n[bold green]Installation complete![/bold green]")
+        console.print("Next steps:")
+        console.print("1. Add services: [cyan]autostartx add \"your-command\"[/cyan]")
         if not enable_autostart:
-            console.print(f"2. Enable autostart: [cyan]autostartx autostart enable[/cyan]")
-        console.print(f"3. Start daemon: [cyan]autostartx daemon start[/cyan]")
-        
+            console.print("2. Enable autostart: [cyan]autostartx autostart enable[/cyan]")
+        console.print("3. Start daemon: [cyan]autostartx daemon start[/cyan]")
+
     except Exception as e:
         console.print(f"[red]Installation failed: {e}[/red]")
 
@@ -570,18 +580,24 @@ def autostart(ctx, action):
         """Create systemd user service file."""
         service_path = get_systemd_service_path()
         service_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Get autostartx executable path
         try:
             # Try autostartx first, then asx as fallback
             try:
-                autostartx_path = subprocess.check_output(["which", "autostartx"], text=True).strip()
+                autostartx_path = subprocess.check_output(
+                    ["which", "autostartx"], text=True
+                ).strip()
             except subprocess.CalledProcessError:
                 autostartx_path = subprocess.check_output(["which", "asx"], text=True).strip()
         except subprocess.CalledProcessError:
             # Fallback to common paths
-            for path in ["/usr/local/bin/autostartx", "/usr/local/bin/asx", 
-                        os.path.expanduser("~/.local/bin/autostartx"), os.path.expanduser("~/.local/bin/asx")]:
+            common_paths = [
+                "/usr/local/bin/autostartx", "/usr/local/bin/asx",
+                os.path.expanduser("~/.local/bin/autostartx"), 
+                os.path.expanduser("~/.local/bin/asx")
+            ]
+            for path in common_paths:
                 if os.path.exists(path):
                     autostartx_path = path
                     break
@@ -604,7 +620,7 @@ Environment=PATH={os.environ.get('PATH', '')}
 [Install]
 WantedBy=default.target
 """
-        
+
         try:
             with open(service_path, 'w') as f:
                 f.write(service_content)
@@ -640,7 +656,7 @@ WantedBy=default.target
         service_path = get_systemd_service_path()
         if not service_path.exists():
             return False, "Service file not found"
-        
+
         try:
             result = subprocess.run(
                 ["systemctl", "--user", "is-enabled", "autostartx.service"],
@@ -655,7 +671,7 @@ WantedBy=default.target
 
     # Main logic
     system = platform.system().lower()
-    
+
     # Platform-specific implementations
     def handle_windows_autostart(action):
         """Handle Windows autostart via registry."""
@@ -664,10 +680,10 @@ WantedBy=default.target
         except ImportError:
             console.print("[red]Error: Windows registry module not available[/red]")
             return False
-        
+
         key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
         value_name = "Autostartx"
-        
+
         try:
             # Get autostartx executable path
             autostartx_path = None
@@ -677,7 +693,7 @@ WantedBy=default.target
                 autostartx_path = shutil.which("autostartx") or shutil.which("asx")
             except:
                 pass
-            
+
             if not autostartx_path:
                 for path in [r"C:\Program Files\autostartx\autostartx.exe", r"C:\Program Files\autostartx\asx.exe",
                            os.path.expanduser(r"~\AppData\Local\Programs\autostartx\autostartx.exe"),
@@ -685,17 +701,17 @@ WantedBy=default.target
                     if os.path.exists(path):
                         autostartx_path = path
                         break
-                        
+
             if not autostartx_path:
                 console.print("[red]Error: autostartx executable not found[/red]")
                 return False
-            
+
             if action == "enable":
                 with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE) as key:
                     winreg.SetValueEx(key, value_name, 0, winreg.REG_SZ, f'"{autostartx_path}" daemon start')
                 console.print("[green]✅ Autostart enabled via Windows registry[/green]")
                 return True
-                
+
             elif action == "disable":
                 try:
                     with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE) as key:
@@ -705,7 +721,7 @@ WantedBy=default.target
                 except FileNotFoundError:
                     console.print("[yellow]Autostart was not enabled[/yellow]")
                     return True
-                    
+
             elif action == "status":
                 try:
                     with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_READ) as key:
@@ -713,19 +729,19 @@ WantedBy=default.target
                         return True, "enabled"
                 except FileNotFoundError:
                     return False, "disabled"
-                    
+
         except Exception as e:
             console.print(f"[red]Windows registry operation failed: {e}[/red]")
             return False
-    
+
     def handle_macos_autostart(action):
         """Handle macOS autostart via LaunchAgent."""
-        from pathlib import Path
         import plistlib
-        
+        from pathlib import Path
+
         launch_agents_dir = Path.home() / "Library" / "LaunchAgents"
         plist_file = launch_agents_dir / "com.autostartx.daemon.plist"
-        
+
         try:
             # Get autostartx executable path
             autostartx_path = None
@@ -735,21 +751,21 @@ WantedBy=default.target
                 autostartx_path = shutil.which("autostartx") or shutil.which("asx")
             except:
                 pass
-                
+
             if not autostartx_path:
                 for path in ["/usr/local/bin/autostartx", "/usr/local/bin/asx",
                            os.path.expanduser("~/.local/bin/autostartx"), os.path.expanduser("~/.local/bin/asx")]:
                     if os.path.exists(path):
                         autostartx_path = path
                         break
-                        
+
             if not autostartx_path:
                 console.print("[red]Error: autostartx executable not found[/red]")
                 return False
-            
+
             if action == "enable":
                 launch_agents_dir.mkdir(parents=True, exist_ok=True)
-                
+
                 plist_content = {
                     "Label": "com.autostartx.daemon",
                     "ProgramArguments": [autostartx_path, "daemon", "start"],
@@ -760,15 +776,15 @@ WantedBy=default.target
                     "StandardOutPath": str(Path.home() / ".local" / "share" / "autostartx" / "logs" / "daemon.log"),
                     "StandardErrorPath": str(Path.home() / ".local" / "share" / "autostartx" / "logs" / "daemon.error.log")
                 }
-                
+
                 with open(plist_file, 'wb') as f:
                     plistlib.dump(plist_content, f)
-                
+
                 # Load the agent
                 subprocess.run(["launchctl", "load", str(plist_file)], check=True, capture_output=True)
                 console.print("[green]✅ Autostart enabled via macOS LaunchAgent[/green]")
                 return True
-                
+
             elif action == "disable":
                 if plist_file.exists():
                     try:
@@ -782,7 +798,7 @@ WantedBy=default.target
                 else:
                     console.print("[yellow]Autostart was not enabled[/yellow]")
                     return True
-                    
+
             elif action == "status":
                 if plist_file.exists():
                     try:
@@ -798,11 +814,11 @@ WantedBy=default.target
                         return False, "unknown"
                 else:
                     return False, "disabled"
-                    
+
         except Exception as e:
             console.print(f"[red]macOS LaunchAgent operation failed: {e}[/red]")
             return False
-    
+
     # Route to appropriate platform handler
     if system == "windows":
         if action == "enable":
@@ -858,7 +874,7 @@ WantedBy=default.target
             console.print("[dim]Autostartx daemon will start automatically after reboot[/dim]")
         else:
             console.print("[red]❌ Failed to enable autostart[/red]")
-    
+
     elif action == "disable":
         console.print("🛑 Disabling autostartx autostart...")
         if disable_systemd_autostart():
@@ -872,16 +888,16 @@ WantedBy=default.target
                     console.print(f"[yellow]Warning: Could not remove service file: {e}[/yellow]")
         else:
             console.print("[red]❌ Failed to disable autostart[/red]")
-    
+
     elif action == "status":
         console.print("📊 Checking autostart status...")
         enabled, status = check_systemd_status()
-        
+
         if enabled:
             console.print("[green]✅ Autostart is enabled[/green]")
         else:
             console.print(f"[yellow]❌ Autostart is disabled ({status})[/yellow]")
-        
+
         # Check if daemon is currently running
         daemon = AutostartxDaemon(ctx.obj.get("config_path"))
         try:
@@ -902,9 +918,9 @@ def uninstall(ctx, remove_config):
     """Uninstall autostartx from system."""
     import subprocess
     from pathlib import Path
-    
+
     console.print("🗑️ Uninstalling autostartx...")
-    
+
     # First, disable autostart
     try:
         result = subprocess.run(
@@ -916,7 +932,7 @@ def uninstall(ctx, remove_config):
             console.print("[green]✅ Autostart disabled[/green]")
     except Exception as e:
         console.print(f"[yellow]Warning: Could not disable autostart: {e}[/yellow]")
-    
+
     # Stop daemon if running
     try:
         daemon = AutostartxDaemon(ctx.obj.get("config_path"))
@@ -924,7 +940,7 @@ def uninstall(ctx, remove_config):
         console.print("[green]✅ Daemon stopped[/green]")
     except Exception as e:
         console.print(f"[yellow]Warning: Could not stop daemon: {e}[/yellow]")
-    
+
     # Remove executable and alias
     removed_paths = []
     for path in ["/usr/local/bin/autostartx", os.path.expanduser("~/.local/bin/autostartx")]:
@@ -935,7 +951,7 @@ def uninstall(ctx, remove_config):
                 console.print(f"[green]✅ Removed: {path}[/green]")
             except Exception as e:
                 console.print(f"[red]❌ Failed to remove {path}: {e}[/red]")
-    
+
     # Remove asx aliases
     for path in ["/usr/local/bin/asx", os.path.expanduser("~/.local/bin/asx")]:
         if os.path.exists(path):
@@ -944,17 +960,17 @@ def uninstall(ctx, remove_config):
                 console.print(f"[green]✅ Removed alias: {path}[/green]")
             except Exception as e:
                 console.print(f"[red]❌ Failed to remove alias {path}: {e}[/red]")
-    
+
     if not removed_paths:
         console.print("[yellow]⚠️ No autostartx executable found to remove[/yellow]")
-    
+
     # Optionally remove config and data
     if remove_config:
         config_dirs = [
             Path.home() / ".config" / "autostartx",
             Path.home() / ".local" / "share" / "autostartx"
         ]
-        
+
         for config_dir in config_dirs:
             if config_dir.exists():
                 try:
@@ -966,7 +982,7 @@ def uninstall(ctx, remove_config):
     else:
         console.print("[dim]Configuration and data files preserved[/dim]")
         console.print("[dim]Use --remove-config to remove all data[/dim]")
-    
+
     console.print("\n[bold green]Uninstallation complete![/bold green]")
 
 
