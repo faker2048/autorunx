@@ -157,33 +157,33 @@ class AutoRestartManager:
                 #    - Status is STOPPED but was previously running (system restart scenario)
                 #    - Service has auto_start=True (explicitly marked for boot startup)
                 should_recover = False
-                
+
                 if not service.auto_restart:
                     continue
-                
+
                 # Case 1: Service marked as RUNNING but process doesn't exist
-                if (service.status == ServiceStatus.RUNNING and 
-                    service.pid and 
+                if (service.status == ServiceStatus.RUNNING and
+                    service.pid and
                     not self.service_manager.process_manager.is_process_running(service.pid)):
                     should_recover = True
-                    
+
                 # Case 2: Service is STOPPED but has restart history (was running before)
                 # This handles system restart where all processes are killed
-                elif (service.status == ServiceStatus.STOPPED and 
+                elif (service.status == ServiceStatus.STOPPED and
                       service.restart_count > 0):
                     should_recover = True
-                    
+
                 # Case 3: Service was manually started and is currently stopped
                 # Check if service has been started before (has created_at < updated_at)
-                elif (service.status == ServiceStatus.STOPPED and 
+                elif (service.status == ServiceStatus.STOPPED and
                       service.updated_at > service.created_at + 60):  # 60 seconds buffer
                     should_recover = True
-                    
+
                 # Case 4: Service has auto_start=True (explicitly marked for boot startup)
-                elif (service.status == ServiceStatus.STOPPED and 
+                elif (service.status == ServiceStatus.STOPPED and
                       getattr(service, 'auto_start', False)):
                     should_recover = True
-                
+
                 if should_recover:
                     recovery_candidates.append(service)
 

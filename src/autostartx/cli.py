@@ -485,10 +485,10 @@ def install(ctx, enable_autostart):
         try:
             if os.path.exists(asx_path):
                 os.remove(asx_path)
-            
+
             # Create a proper asx script with correct shebang
             import sys
-            asx_content = f"""#!/usr/bin/env python3
+            asx_content = """#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import sys
 import os
@@ -512,7 +512,7 @@ except ImportError:
         print("Error: Could not find autostartx installation")
         sys.exit(1)
 """
-            
+
             with open(asx_path, 'w') as f:
                 f.write(asx_content)
             os.chmod(asx_path, 0o755)
@@ -624,7 +624,7 @@ def autostart(ctx, action):
             # Fallback to common paths
             common_paths = [
                 "/usr/local/bin/autostartx", "/usr/local/bin/asx",
-                os.path.expanduser("~/.local/bin/autostartx"), 
+                os.path.expanduser("~/.local/bin/autostartx"),
                 os.path.expanduser("~/.local/bin/asx")
             ]
             for path in common_paths:
@@ -856,18 +856,18 @@ WantedBy=default.target
             if handle_windows_autostart("enable"):
                 console.print("[green]✅ Autostart successfully enabled![/green]")
                 console.print("[dim]Autostartx daemon will start automatically after login[/dim]")
-                
+
                 # Mark all existing services with auto_restart=True as auto_start=True
                 manager = ServiceManager(ctx.obj.get("config_path"))
                 services = manager.list_services()
                 auto_start_count = 0
-                
+
                 for service in services:
                     if service.auto_restart and not getattr(service, 'auto_start', False):
                         service.auto_start = True
                         manager.storage.update_service(service)
                         auto_start_count += 1
-                        
+
                 if auto_start_count > 0:
                     console.print(f"[green]✅ Marked {auto_start_count} service(s) for auto-start after reboot[/green]")
                 else:
@@ -878,18 +878,18 @@ WantedBy=default.target
         elif action == "disable":
             console.print("🛑 Disabling autostartx autostart on Windows...")
             handle_windows_autostart("disable")
-            
+
             # Clear auto_start flag from all services
             manager = ServiceManager(ctx.obj.get("config_path"))
             services = manager.list_services()
             auto_start_count = 0
-            
+
             for service in services:
                 if getattr(service, 'auto_start', False):
                     service.auto_start = False
                     manager.storage.update_service(service)
                     auto_start_count += 1
-                    
+
             if auto_start_count > 0:
                 console.print(f"[green]✅ Cleared auto-start flag from {auto_start_count} service(s)[/green]")
             return
@@ -907,18 +907,18 @@ WantedBy=default.target
             if handle_macos_autostart("enable"):
                 console.print("[green]✅ Autostart successfully enabled![/green]")
                 console.print("[dim]Autostartx daemon will start automatically after login[/dim]")
-                
+
                 # Mark all existing services with auto_restart=True as auto_start=True
                 manager = ServiceManager(ctx.obj.get("config_path"))
                 services = manager.list_services()
                 auto_start_count = 0
-                
+
                 for service in services:
                     if service.auto_restart and not getattr(service, 'auto_start', False):
                         service.auto_start = True
                         manager.storage.update_service(service)
                         auto_start_count += 1
-                        
+
                 if auto_start_count > 0:
                     console.print(f"[green]✅ Marked {auto_start_count} service(s) for auto-start after reboot[/green]")
                 else:
@@ -929,18 +929,18 @@ WantedBy=default.target
         elif action == "disable":
             console.print("🛑 Disabling autostartx autostart on macOS...")
             handle_macos_autostart("disable")
-            
+
             # Clear auto_start flag from all services
             manager = ServiceManager(ctx.obj.get("config_path"))
             services = manager.list_services()
             auto_start_count = 0
-            
+
             for service in services:
                 if getattr(service, 'auto_start', False):
                     service.auto_start = False
                     manager.storage.update_service(service)
                     auto_start_count += 1
-                    
+
             if auto_start_count > 0:
                 console.print(f"[green]✅ Cleared auto-start flag from {auto_start_count} service(s)[/green]")
             return
@@ -962,18 +962,18 @@ WantedBy=default.target
         if create_systemd_service() and enable_systemd_autostart():
             console.print("[green]✅ Autostart successfully enabled![/green]")
             console.print("[dim]Autostartx daemon will start automatically after reboot[/dim]")
-            
+
             # Mark all existing services with auto_restart=True as auto_start=True
             manager = ServiceManager(ctx.obj.get("config_path"))
             services = manager.list_services()
             auto_start_count = 0
-            
+
             for service in services:
                 if service.auto_restart and not getattr(service, 'auto_start', False):
                     service.auto_start = True
                     manager.storage.update_service(service)
                     auto_start_count += 1
-                    
+
             if auto_start_count > 0:
                 console.print(f"[green]✅ Marked {auto_start_count} service(s) for auto-start after reboot[/green]")
             else:
@@ -992,18 +992,18 @@ WantedBy=default.target
                     console.print("[dim]Removed systemd service file[/dim]")
                 except Exception as e:
                     console.print(f"[yellow]Warning: Could not remove service file: {e}[/yellow]")
-                    
+
             # Clear auto_start flag from all services
             manager = ServiceManager(ctx.obj.get("config_path"))
             services = manager.list_services()
             auto_start_count = 0
-            
+
             for service in services:
                 if getattr(service, 'auto_start', False):
                     service.auto_start = False
                     manager.storage.update_service(service)
                     auto_start_count += 1
-                    
+
             if auto_start_count > 0:
                 console.print(f"[green]✅ Cleared auto-start flag from {auto_start_count} service(s)[/green]")
         else:
