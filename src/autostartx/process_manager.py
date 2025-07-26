@@ -244,17 +244,17 @@ class ProcessManager:
         return self.start_service(service)
 
     def pause_service(self, service: ServiceInfo) -> bool:
-        """Pause service."""
+        """Pause service (Linux only)."""
         if not service.pid:
             return False
 
-        process_info = ProcessInfo(service.pid)
-        if not process_info.exists:
+        if not psutil.pid_exists(service.pid):
             service.pid = None
             service.update_status(ServiceStatus.STOPPED)
             return False
 
         try:
+            # Send SIGSTOP signal (Linux specific)
             os.kill(service.pid, signal.SIGSTOP)
             service.update_status(ServiceStatus.PAUSED)
             return True
@@ -262,17 +262,17 @@ class ProcessManager:
             return False
 
     def resume_service(self, service: ServiceInfo) -> bool:
-        """Resume service."""
+        """Resume service (Linux only)."""
         if not service.pid:
             return False
 
-        process_info = ProcessInfo(service.pid)
-        if not process_info.exists:
+        if not psutil.pid_exists(service.pid):
             service.pid = None
             service.update_status(ServiceStatus.STOPPED)
             return False
 
         try:
+            # Send SIGCONT signal (Linux specific)
             os.kill(service.pid, signal.SIGCONT)
             service.update_status(ServiceStatus.RUNNING)
             return True
