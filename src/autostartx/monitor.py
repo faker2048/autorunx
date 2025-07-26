@@ -55,9 +55,14 @@ class ServiceMonitor:
 
             # Check process status
             if service.status == ServiceStatus.RUNNING and service.pid:
+                print(f"[DEBUG] Checking service {service.name} (PID: {service.pid})")
+                
                 if not self.service_manager.process_manager.is_process_running(service.pid):
                     # Process unexpectedly exited, needs restart
+                    print(f"[WARNING] Service {service.name} process check failed, initiating restart")
                     self._handle_service_crash(service)
+                else:
+                    print(f"[DEBUG] Service {service.name} process check OK")
 
             elif service.status == ServiceStatus.STARTING:
                 # Check if startup timed out

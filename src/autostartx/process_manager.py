@@ -131,7 +131,25 @@ class ProcessManager:
                     start_new_session=True,  # Create new process group
                 )
 
+                # Store the process PID
                 service.pid = process.pid
+                print(f"[DEBUG] Started service {service.name} with PID {process.pid}")
+                
+                # For sudo commands, try to find the actual child process
+                if cmd_parts[0] == "sudo":
+                    time.sleep(0.5)  # Give time for child process to start
+                    try:
+                        parent_process = psutil.Process(process.pid)
+                        children = parent_process.children(recursive=True)
+                        if children:
+                            # Use the first child process as the actual service PID
+                            actual_pid = children[0].pid
+                            service.pid = actual_pid
+                            print(f"[DEBUG] Found child process PID {actual_pid} for sudo command")
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        # If we can't get child processes, use original PID
+                        pass
+                
                 service.update_status(ServiceStatus.RUNNING)
                 return True
 
@@ -238,7 +256,32 @@ class ProcessManager:
 
     def is_process_running(self, pid: int) -> bool:
         """Check if process is running."""
-        return ProcessInfo(pid).exists
+        try:
+            if not psutil.pid_exists(pid):
+                print(f"[DEBUG] Process {pid} not found in system")
+                return False
+                
+            process = psutil.Process(pid)
+            
+            # Check if process is running
+            if not process.is_running():
+                print(f"[DEBUG] Process {pid} exists but not running (status: {process.status()})")
+                return False
+                
+            print(f"[DEBUG] Process {pid} check passed - running normally")
+            return True
+            
+        except psutil.NoSuchProcess:
+            print(f"[DEBUG] Process {pid} no longer exists")
+            return False
+        except psutil.AccessDenied:
+            print(f"[DEBUG] Access denied for process {pid} - assuming it's running")
+            # If we can't access it, assume it's running to avoid false restarts
+            return True
+        except Exception as e:
+            print(f"[DEBUG] Process {pid} check error: {e} - assuming it's running")
+            # If we can't determine status, assume it's running to avoid false restarts
+            return True
 
     def _parse_command(self, command: str) -> List[str]:
         """Parse command string."""
