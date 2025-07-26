@@ -480,15 +480,45 @@ def install(ctx, enable_autostart):
         os.chmod(install_path, 0o755)
         console.print(f"[green]Successfully installed autostartx to {install_path}[/green]")
 
-        # Create asx alias (symbolic link)
+        # Create asx alias (independent script)
         asx_path = os.path.join(install_dir, "asx")
         try:
             if os.path.exists(asx_path):
                 os.remove(asx_path)
-            os.symlink(install_path, asx_path)
-            console.print(f"[green]Created alias: asx -> {install_path}[/green]")
+            
+            # Create a proper asx script with correct shebang
+            import sys
+            asx_content = f"""#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+import sys
+import os
+
+# Add the autostartx installation directory to Python path if needed
+autostartx_dir = os.path.dirname(os.path.abspath(__file__))
+if autostartx_dir not in sys.path:
+    sys.path.insert(0, autostartx_dir)
+
+# Import and run autostartx main function
+try:
+    from autostartx.cli import main
+    main()
+except ImportError:
+    # Fallback: try to run autostartx directly
+    import subprocess
+    autostartx_path = os.path.join(autostartx_dir, "autostartx")
+    if os.path.exists(autostartx_path):
+        os.execv(sys.executable, [sys.executable, autostartx_path] + sys.argv[1:])
+    else:
+        print("Error: Could not find autostartx installation")
+        sys.exit(1)
+"""
+            
+            with open(asx_path, 'w') as f:
+                f.write(asx_content)
+            os.chmod(asx_path, 0o755)
+            console.print(f"[green]Created asx script: {asx_path}[/green]")
         except Exception as e:
-            console.print(f"[yellow]Warning: Could not create asx alias: {e}[/yellow]")
+            console.print(f"[yellow]Warning: Could not create asx script: {e}[/yellow]")
 
         # Ask about autostart if not explicitly specified
         if not enable_autostart:
