@@ -164,16 +164,49 @@ class ProcessManager:
             service.update_status(ServiceStatus.STOPPED)
             return True
 
-        process_info = ProcessInfo(service.pid)
-        if not process_info.exists:
-            service.pid = None
-            service.update_status(ServiceStatus.STOPPED)
-            return True
+        try:
+            if not psutil.pid_exists(service.pid):
+                print(f"[DEBUG] Service {service.name} PID {service.pid} no longer exists")
+                service.pid = None
+                service.update_status(ServiceStatus.STOPPED)
+                return True
 
-        # Stop process
-        success = process_info.kill() if force else process_info.terminate()
+            process = psutil.Process(service.pid)
+            
+            # Get all child processes before terminating
+            children = []
+            try:
+                children = process.children(recursive=True)
+                print(f"[DEBUG] Found {len(children)} child processes for {service.name}")
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
 
-        if success:
+            # Stop main process
+            if force:
+                process.kill()
+            else:
+                process.terminate()
+                
+            # Wait for main process to stop
+            try:
+                process.wait(timeout=5)
+            except psutil.TimeoutExpired:
+                print(f"[DEBUG] Process {service.pid} didn't stop gracefully, force killing")
+                process.kill()
+                process.wait(timeout=2)
+
+            # Stop any remaining child processes
+            for child in children:
+                try:
+                    if child.is_running():
+                        if force:
+                            child.kill()
+                        else:
+                            child.terminate()
+                        print(f"[DEBUG] Stopped child process {child.pid}")
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+
             service.pid = None
             service.update_status(ServiceStatus.STOPPED)
 
@@ -187,7 +220,16 @@ class ProcessManager:
             except Exception:
                 pass  # Ignore log write errors
 
-        return success
+            return True
+
+        except psutil.NoSuchProcess:
+            print(f"[DEBUG] Process {service.pid} already gone")
+            service.pid = None
+            service.update_status(ServiceStatus.STOPPED)
+            return True
+        except Exception as e:
+            print(f"[ERROR] Failed to stop service {service.name}: {e}")
+            return False
 
     def restart_service(self, service: ServiceInfo, force: bool = False) -> bool:
         """Restart service."""
